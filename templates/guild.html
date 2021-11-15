@@ -1,0 +1,49 @@
+{% extends "layout.html" %}
+{% block head %}
+<script>
+    function wesee(name){
+    let package = {'guild_name': name}
+    console.log(name);
+    fetch('/guild', {
+        method: "POST",
+        body: JSON.stringify(package)
+    })
+    .then(function(){
+        window.location.href = "/"
+    })
+    
+    
+}
+
+</script>
+
+{% endblock %}
+
+{% block main %}
+<div class="container p-sm-5">
+  <!-- Content here -->
+
+<div class="row px-sm-5">
+    {% for guild in guilds %}
+  <div class="col-sm-6 p-sm-2">
+    <div class="card" style="background-color: #9E9E9E; border-color: grey;">
+      <div class="card-body">
+        <h5 class="card-title" id="guild_name{{loop.index}}">{{ guild }}</h5>
+        <p class="card-text">With supporting text below as a natural lead-in to additional content.
+        </p>
+        {% if guild in common_guilds %}
+        <button type="button" class="btn btn-primary" style="background-color: #4e62f0;" 
+        onclick="wesee(this.value)" value="{{ guild }}">Join Guild!</button>
+        {% else %} <a class="btn btn-primary disabled" aria-disabled="true"
+         role="button" data-bs-toggle="button">Not supported ;(</a>
+        {% endif %} 
+      </div>
+    </div>
+  </div>
+
+    {% endfor %}
+
+</div>
+</div>
+{% endblock %}
+
