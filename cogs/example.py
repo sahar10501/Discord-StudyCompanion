@@ -12,7 +12,8 @@ class Example(commands.Cog):
     @commands.command()
     async def change(self, ctx):
         await ctx.send('change')
-
+        async for member in ctx.guild.fetch_members(limit=1000):
+            print(member.name)
 
 def setup(bot):
     bot.add_cog(Example(bot))

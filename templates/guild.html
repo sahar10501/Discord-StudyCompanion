@@ -1,7 +1,8 @@
 {% extends "layout.html" %}
 {% block head %}
+
 <script>
-    function wesee(name){
+    function send_guild_name(name){
     let package = {'guild_name': name}
     console.log(name);
     fetch('/guild', {
@@ -11,8 +12,6 @@
     .then(function(){
         window.location.href = "/"
     })
-    
-    
 }
 
 </script>
@@ -21,7 +20,7 @@
 
 {% block main %}
 <div class="container p-sm-5">
-  <!-- Content here -->
+ 
 
 <div class="row px-sm-5">
     {% for guild in guilds %}
@@ -33,7 +32,7 @@
         </p>
         {% if guild in common_guilds %}
         <button type="button" class="btn btn-primary" style="background-color: #4e62f0;" 
-        onclick="wesee(this.value)" value="{{ guild }}">Join Guild!</button>
+        onclick="send_guild_name(this.value)" value="{{ guild }}">Join Guild!</button>
         {% else %} <a class="btn btn-primary disabled" aria-disabled="true"
          role="button" data-bs-toggle="button">Not supported ;(</a>
         {% endif %} 
@@ -43,7 +42,5 @@
 
     {% endfor %}
 
-</div>
-</div>
 {% endblock %}
 

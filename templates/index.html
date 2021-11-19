@@ -1,14 +1,108 @@
 {% extends "layout.html" %}
 {% block head %}
+
+<style>
+  .vertical-menu {
+  overflow-y: scroll;
+  margin-bottom: 0px;
+  height: 500px;
+  }
+  .vertical-menu a {
+  background-color: #eee;
+  color: black;
+  display: block;
+  padding: 12px;
+  text-decoration: none;
+  }
+  .vertical-menu a:hover {
+  background-color: #ccc;
+  }
+  .vertical-menu a.active {
+  background-color: #000000;
+  color: white;
+  }
+  </style>
+
 <script>
-
-
+    function send_guild_name(name){
+    let package = {'guild_name': name}
+    console.log(name);
+    fetch('/guild', {
+        method: "POST",
+        body: JSON.stringify(package)
+    })
+    .then(function(){
+        window.location.href = "/"
+    })
+}
 </script>
 
 {% endblock %}
 
 {% block main %}
+<div class="container-fluid p-0 mt-3 mb-4">
+<div class="row">
+  <div class="col-sm-12 col-lg-3 p-sm-2">
+    <div class="vertical-menu">
+        <ul style="padding: 0; margin-left: 1rem;">
+        {% for user in guild_users %}
+            <li class="nav-item" style="margin-bottom: 1rem;">
+              <div class="card" >
+                  <div class="card-body h-25" >
+                    <h5 class="card-title">{{ user["username"] }}</h5>
+                  </div>
+                    <p class="card-text"> </p>
+                    <div class="card-footer text-muted" >
+                      <div class="row">
+                        <div class="col-6"><input type="button" class="btn btn-primary" value="Invite" style="background-color: #4e62f0;"> </div>
+                        <div class="col-6"><div style="margin-top: 5px; text-decoration: underline;">Status: </div></div>
+                      </div>
+                  </div>
+                </div>
+             </li>
+             
+            {% endfor %}
+          </ul>
+      </div>
+    <div class="row m-1">
+      <div class="col-lg-12 col-sm-6 pt-2"><span style="color: grey"><h6>User: </h3></span></div>
+      <div class="col-lg-12 col-sm-6"><span style="color: grey"><h6>Guild: </h6></span></div>
+
+    </div>
+      
+  </div>
+
+  <div class="col-xs-12 col-lg-9">
+    <div class="row justify-content-center pb-5 pt-4 border-bottom">
+      <div style="text-align: center;" class="col-xs-6 col-sm-3">
+        <img src="data:image/gif;base64,R0lGODlhAQABAIAAAHd3dwAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw==" class="img-responsive rounded-circle" alt="User Image" width="125" height="125">
+        <h4 style="color: Gray; margin-top: 1rem;">Label</h4>
+        <span class="text-muted">Inviting...</span>
+      </div>
+      <div style="text-align: center;" class="col-xs-6 col-sm-3">
+        <img src="data:image/gif;base64,R0lGODlhAQABAIAAAHd3dwAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw==" class="img-responsive rounded-circle" alt="User Image" width="125" height="125">
+        <h4 style="color: Gray; margin-top: 1rem;">Label</h4>
+        <span class="text-muted">Inviting...</span>
+      </div>
+      <div style="text-align: center;" class="col-xs-6 col-sm-3">
+        <img src="data:image/gif;base64,R0lGODlhAQABAIAAAHd3dwAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw==" class="img-responsive rounded-circle" alt="User Image" width="125" height="125">
+        <h4 style="color: Gray; margin-top: 1rem;">Label</h4>
+        <span class="text-muted">Inviting...</span>
+      </div>
+      <div style="text-align: center;" class="col-xs-6 col-sm-3">
+        <img src="data:image/gif;base64,R0lGODlhAQABAIAAAHd3dwAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw==" class="img-responsive rounded-circle" alt="User Image" width="125" height="125">
+        <h4 style="color: Gray; margin-top: 1rem;">Label</h4>
+        <span class="text-muted">Inviting...</span>
+      </div>
 
 
+
+
+    </div>
+  </div>
+
+
+</div>
+</div>
 {% endblock %}
 

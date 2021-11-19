@@ -1,4 +1,5 @@
-from quart import Quart, redirect, render_template, request, url_for, session
+from quart import Quart, redirect, render_template, request, url_for
+from quart import session as ses
 from discord_client import DiscordClient
 from hypercorn.asyncio import serve
 from hypercorn.config import Config
@@ -7,6 +8,7 @@ from helpers import login_required
 from dotenv import load_dotenv
 import os
 import asyncio
+import aiohttp
 
 QUART_APP = Quart(__name__)
 load_dotenv()
@@ -37,45 +39,64 @@ def after_request(response):
     return response
 
 
-@QUART_APP.route("/")
+@QUART_APP.route("/", methods=["POST", "GET"])
 @requires_authorization
 @login_required
 async def homepage():
-    return await render_template("index.html")
+    if request.method == "POST":
+        pass
+    else:
+        guild_id = ses["user_guild_id"]
+        headers = {'Authorization': 'Bot {}'.format(os.getenv("TOKEN"))}
+        params = {'limit': 1000}
+        if ses.get('user_guilds') is None:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url=f'https://discord.com/api/guilds/{guild_id}/members', headers=headers,
+                                       params=params) as resp:
+                    response = await resp.json()
+                    # print(response)
+                    await session.close()
+            guild_users = [{
+                # add check to see if user is a bot
+                "user_id": user["user"]["id"],
+                "username": user["user"]["username"],
+                "avatar": user["user"]["avatar"]
+            } for user in response]
+            ses['user_guilds'] = guild_users
+
+        return await render_template("index.html", guild_users=ses['user_guilds'])
 
 
 @QUART_APP.route("/login/")
 async def login():
     discord.revoke()
-    return await discord.create_session(scope=["guilds"])
+    return await discord.create_session(scope=[
+        "connections", "email", "identify", "guilds", "guilds.join",
+        "gdm.join", "messages.read"])
 
 
 @QUART_APP.route("/guild/", methods=["POST", "GET"])
 async def guild():
-    """ Here the user chooses the guild which he wishes to interact with
-        - Checking the guild the bot and user is in and storing in session the guild
-          the user chose
-    """
     if request.method == "POST":
         if "guild_name" in await request.get_json(force=True):
             guid_name = await request.get_json(force=True)
+            # Remember the guild - need to know the ID
             bot_guilds = await discord.bot_request("/users/@me/guilds", method="GET")
             bot_guilds_info = [{"guild_name": guild['name'], "id": guild['id']} for guild in bot_guilds]
             user_guild_id = next(item for item in bot_guilds_info if item["guild_name"] == guid_name['guild_name'])
-            # clears session and stores the guild the user chose
-            session.clear()
-            session["user_guild_id"] = user_guild_id['id']
+            ses["user_guild_id"] = user_guild_id['id']
+            ses["user_guilds"] = None
 
-            #bot_guilds_info_1 = bot_guilds_info[0]
-            #user_guild_input_id = {k: bot_guilds_info_1[k] for k in bot_guilds_info_1 if k in guid_name and bot_guilds_info_1[k] == guid_name[k]}
-            #print(user_guild_input_id)
-            #x = dict(a=1, b=2)
-            #y = dict(a=2, b=2)
-            #shared_items = {k: x[k] for k in x if k in y and x[k] == y[k]}
-            #print(shared_items)
+            # bot_guilds_info_1 = bot_guilds_info[0]
+            # user_guild_input_id = {k: bot_guilds_info_1[k] for k in bot_guilds_info_1 if k in guid_name and
+            # bot_guilds_info_1[k] == guid_name[k]}
+            # print(user_guild_input_id)
+            # x = dict(a=1, b=2)
+            # y = dict(a=2, b=2)
+            # shared_items = {k: x[k] for k in x if k in y and x[k] == y[k]}
+            # print(shared_items)
 
         return redirect("/")
-
     else:
         user_guilds = await discord.fetch_guilds()
         user_guilds = [str(name) for name in user_guilds]
@@ -94,13 +115,21 @@ async def callback():
 @QUART_APP.route("/logout")
 async def logout():
     discord.revoke()
-    session.clear()
+    ses.clear()
     return redirect("/")
 
 
 @QUART_APP.errorhandler(Unauthorized)
 async def redirect_unauthorized(e):
     return redirect(url_for("login"))
+
+
+@QUART_APP.route("/me/")
+@requires_authorization
+async def me():
+    print('test')
+    user = await discord.fetch_user()
+    return await render_template("index.html")
 
 
 asyncio.run(serve(QUART_APP, config))
