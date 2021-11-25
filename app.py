@@ -44,17 +44,21 @@ def after_request(response):
 @login_required
 async def homepage():
     if request.method == "POST":
-        pass
+        if 'invite_list' in request.headers['X-Custom-Header']:
+            test = await request.get_data(as_text=True, parse_form_data=True)
+            print(test)
+        return 'hello'
     else:
         guild_id = ses["user_guild_id"]
-        headers = {'Authorization': 'Bot {}'.format(os.getenv("TOKEN"))}
-        params = {'limit': 1000}
-        if ses.get('user_guilds') is None:
+        headers = {"Authorization": 'Bot {}'.format(os.getenv("TOKEN"))}
+        params = {"limit": 1000}
+
+        if ses.get("guild_users") is None:
             async with aiohttp.ClientSession() as session:
                 async with session.get(url=f'https://discord.com/api/guilds/{guild_id}/members', headers=headers,
                                        params=params) as resp:
                     response = await resp.json()
-                    # print(response)
+                    print(response)
                     await session.close()
             guild_users = [{
                 # add check to see if user is a bot
@@ -62,9 +66,10 @@ async def homepage():
                 "username": user["user"]["username"],
                 "avatar": user["user"]["avatar"]
             } for user in response]
-            ses['user_guilds'] = guild_users
+            ses["guild_users"] = guild_users
 
-        return await render_template("index.html", guild_users=ses['user_guilds'])
+
+        return await render_template("index.html", guild_users=ses['guild_users'])
 
 
 @QUART_APP.route("/login/")
@@ -81,11 +86,12 @@ async def guild():
         if "guild_name" in await request.get_json(force=True):
             guid_name = await request.get_json(force=True)
             # Remember the guild - need to know the ID
+
             bot_guilds = await discord.bot_request("/users/@me/guilds", method="GET")
-            bot_guilds_info = [{"guild_name": guild['name'], "id": guild['id']} for guild in bot_guilds]
-            user_guild_id = next(item for item in bot_guilds_info if item["guild_name"] == guid_name['guild_name'])
-            ses["user_guild_id"] = user_guild_id['id']
-            ses["user_guilds"] = None
+            bot_guilds_info = [{"guild_name": guild["name"], "id": guild["id"]} for guild in bot_guilds]
+            user_guild_id = next(item for item in bot_guilds_info if item["guild_name"] == guid_name["guild_name"])
+            ses["user_guild_id"] = user_guild_id["id"]
+            ses["guild_users"] = None
 
             # bot_guilds_info_1 = bot_guilds_info[0]
             # user_guild_input_id = {k: bot_guilds_info_1[k] for k in bot_guilds_info_1 if k in guid_name and
@@ -98,12 +104,16 @@ async def guild():
 
         return redirect("/")
     else:
-        user_guilds = await discord.fetch_guilds()
-        user_guilds = [str(name) for name in user_guilds]
-        bot_guilds = await discord.bot_request("/users/@me/guilds", method="GET")
-        bot_guilds_name = [str(name['name']) for name in bot_guilds]
+        if ses.get("user_guilds_list") is None:
+            user_guilds = await discord.fetch_guilds()
+            user_guilds = [str(name) for name in user_guilds]
+            bot_guilds = await discord.bot_request("/users/@me/guilds", method="GET")
+            bot_guilds_name = [str(name['name']) for name in bot_guilds]
+            ses['user_guilds_list'], ses['bot_guilds_list'] = user_guilds, bot_guilds_name
 
-        return await render_template("guild.html", guilds=user_guilds, common_guilds=bot_guilds_name)
+        return await render_template("guild.html",
+                                     guilds=ses['user_guilds_list'],
+                                     common_guilds=ses['bot_guilds_list'])
 
 
 @QUART_APP.route("/callback/")

@@ -1,14 +1,35 @@
 html{
-    background-color: #111111;
+    background-color: #1A181B;
 }
-
 body{
-    background-color: #111111;
+    background-color: #1A181B;
     color: #111111;
 }
-
 footer{
-display: None;
-visibility: hidden;
-
+    display: None;
+    visibility: hidden;
+}
+.vertical-menu {
+    overflow-y: scroll;
+    margin-bottom: 0px;
+    height: 500px;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+.vertical-menu::-webkit-scrollbar {
+    display: none;
+}
+.vertical-menu a {
+    background-color: #eee;
+    color: black;
+    display: block;
+    padding: 12px;
+    text-decoration: none;
+}
+.vertical-menu a:hover {
+    background-color: #ccc;
+}
+.vertical-menu a.active {
+    background-color: #000000;
+    color: white;
 }

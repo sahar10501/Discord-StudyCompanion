@@ -1,108 +1,163 @@
-{% extends "layout.html" %}
+{% extends 'layout.html' %}
 {% block head %}
 
-<style>
-  .vertical-menu {
-  overflow-y: scroll;
-  margin-bottom: 0px;
-  height: 500px;
-  }
-  .vertical-menu a {
-  background-color: #eee;
-  color: black;
-  display: block;
-  padding: 12px;
-  text-decoration: none;
-  }
-  .vertical-menu a:hover {
-  background-color: #ccc;
-  }
-  .vertical-menu a.active {
-  background-color: #000000;
-  color: white;
-  }
-  </style>
-
 <script>
-    function send_guild_name(name){
-    let package = {'guild_name': name}
-    console.log(name);
-    fetch('/guild', {
-        method: "POST",
-        body: JSON.stringify(package)
+    document.addEventListener('DOMContentLoaded', function(){
+      let theDiv = document.getElementById('invite_list');
+      let content = document.createElement('div');
+      content.className = 'row justify-content-center pb-4 pt-3 border-bottom'
+      let users = []
+      let id_set = new Array
+
+      // populates the row with all of the assigned users
+      function show_users() {
+        content.innerText = ""
+        users.forEach(function(element){ 
+
+          content.innerHTML += `<div style='text-align: center;' class='col-xs-6 col-sm-3'>
+        <img src='https://cdn.discordapp.com/avatars/${element.user_id}/${element.avatar_hash}.webp?size=1024'
+        onerror="this.onerror=null;this.src='https://upload.wikimedia.org/wikipedia/commons/thumb/1/1f/Blank_square.svg/2048px-Blank_square.svg.png';"
+        class='img-responsive rounded-circle' alt='User Image' width='125' height='125'>
+        <h4 style='color: Gray; margin-top: 1rem;'>${element.name}</h4>
+        <span class='text-muted'>Assigned</span>
+      </div>`
+          theDiv.appendChild(content);
+        });
+      }
+      let buttons = document.querySelectorAll('.user_buttons.btn.btn-primary')
+      // Listens to button click, assign and remove users from invite list
+      buttons.forEach(element =>  {
+        element.state = 0
+        element.addEventListener('click', function(){
+          let avatar_id = element.getAttribute('data-avatar_id')
+          let user_id = element.getAttribute('data-user_id')
+          let username = this.value
+            // checking if the button is in invite state
+            if (element.state == 0) {
+              // preparing a dict with all the user info
+              dict =  {
+                  "user_id": user_id, 
+                  "name": username,
+                  "avatar_hash": avatar_id,
+                }
+              // checking for user_id duplicates and limiting array to 4 users
+              if (users.length <= 3){
+                if (!users.some(user => user.user_id == user_id)){
+                  users.push(dict)
+                  show_users();
+                }
+                element.state = 1
+                element.style.color = 'gray'
+                element.innerText = 'Remove'
+              };
+            }
+
+            else if (element.state == 1){
+              users = users.filter(function (e) {
+              return e.user_id != user_id
+              });
+              element.style.color = 'white'
+              element.innerText = 'Invite'
+              element.state = 0
+              show_users();
+            };
+        })
+
+        
+      })
+
+      let invite_button = document.getElementById('invite_button')
+      invite_button.addEventListener('click', function(){
+        let users_id = users.map(e => e.user_id);
+        fetch('/', {
+          method: 'POST',
+          body: users_id,
+          headers: new Headers({
+            'Content-Type': 'text/plain',
+            'X-Custom-Header': 'invite_list'
+          })
+        })
+      })
     })
-    .then(function(){
-        window.location.href = "/"
-    })
-}
+   
 </script>
 
 {% endblock %}
 
 {% block main %}
-<div class="container-fluid p-0 mt-3 mb-4">
-<div class="row">
-  <div class="col-sm-12 col-lg-3 p-sm-2">
-    <div class="vertical-menu">
-        <ul style="padding: 0; margin-left: 1rem;">
+<div class='container-fluid p-0 mt-3 mb-4'>
+<div class='row'>
+  <div class='col-sm-12 col-lg-3 p-sm-2'>
+    <div class='vertical-menu'>
+        <ul style='padding: 0; margin-left: 1rem;'>
         {% for user in guild_users %}
-            <li class="nav-item" style="margin-bottom: 1rem;">
-              <div class="card" >
-                  <div class="card-body h-25" >
-                    <h5 class="card-title">{{ user["username"] }}</h5>
+            <li class='nav-item' style='margin-bottom: 1rem;'>
+              <div class='card' >
+                  <div class='card-body h-25'>
+                    <div class='row'>
+                      <div class='col-9'><h5 class='card-title'>{{ user['username'] | safe }}</h5></div>
+                      <div class='col-3'>
+                        {% if user['avatar'] is not none %}
+                        <img id="{{ loop.index }}" src="https://cdn.discordapp.com/avatars/{{ user['user_id'] | safe }}/{{ user['avatar'] | safe }}.webp?size=1024"
+                        class='img-responsive rounded-circle' alt='User Image' width='40' height='40'>
+                        {% endif %}
+                      </div>
+                    </div>
                   </div>
-                    <p class="card-text"> </p>
-                    <div class="card-footer text-muted" >
-                      <div class="row">
-                        <div class="col-6"><input type="button" class="btn btn-primary" value="Invite" style="background-color: #4e62f0;"> </div>
-                        <div class="col-6"><div style="margin-top: 5px; text-decoration: underline;">Status: </div></div>
+                    <p class='card-text'></p>
+                    <div class='card-footer text-muted' >
+                      <div class='row'>
+                        <div class='col-3'>
+                          <button type='button' aria-pressed="true" data-bs-toggle="button"  class='user_buttons btn btn-primary active' style='background-color: #4e62f0;' 
+                          value='{{ user['username'] }}' data-avatar_id="{{ user['avatar'] }}" data-user_id="{{ user['user_id'] }}">Invite</button>
+                        </div>
+                        <div class='col-3'><div style='margin-top: 5px; text-decoration: underline;'>Status</div></div>
                       </div>
                   </div>
                 </div>
              </li>
-             
             {% endfor %}
+
+
           </ul>
       </div>
-    <div class="row m-1">
-      <div class="col-lg-12 col-sm-6 pt-2"><span style="color: grey"><h6>User: </h3></span></div>
-      <div class="col-lg-12 col-sm-6"><span style="color: grey"><h6>Guild: </h6></span></div>
-
-    </div>
-      
   </div>
 
-  <div class="col-xs-12 col-lg-9">
-    <div class="row justify-content-center pb-5 pt-4 border-bottom">
-      <div style="text-align: center;" class="col-xs-6 col-sm-3">
-        <img src="data:image/gif;base64,R0lGODlhAQABAIAAAHd3dwAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw==" class="img-responsive rounded-circle" alt="User Image" width="125" height="125">
-        <h4 style="color: Gray; margin-top: 1rem;">Label</h4>
-        <span class="text-muted">Inviting...</span>
+  <div class='col-xs-12 col-lg-9'>
+    <div id='invite_list'></div>
+ 
+    <div class='row mt-4'>
+      <div class='col-lg-3'>
+        <p style='color: white; font-size: 25px; text-decoration-line: underline;' 
+          class='text-center'>Session Topic:
+        </p>
+        <p style=' color: white; font-size: 1rem;' class='text-center'>Python Study</p>
       </div>
-      <div style="text-align: center;" class="col-xs-6 col-sm-3">
-        <img src="data:image/gif;base64,R0lGODlhAQABAIAAAHd3dwAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw==" class="img-responsive rounded-circle" alt="User Image" width="125" height="125">
-        <h4 style="color: Gray; margin-top: 1rem;">Label</h4>
-        <span class="text-muted">Inviting...</span>
+      <div class='col-lg-3'><p style='color: #f7f7f7; font-size: 25px;' class='text-center'>53#</p>
+        <p style='text-decoration-line: overline; color: white;' class='text-center'>Session number</p>
       </div>
-      <div style="text-align: center;" class="col-xs-6 col-sm-3">
-        <img src="data:image/gif;base64,R0lGODlhAQABAIAAAHd3dwAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw==" class="img-responsive rounded-circle" alt="User Image" width="125" height="125">
-        <h4 style="color: Gray; margin-top: 1rem;">Label</h4>
-        <span class="text-muted">Inviting...</span>
+      <div class='col-lg-3'><p style='color: #f7f7f7; font-size: 25px;' class='text-center'>18:20</p>
+        <p style='text-decoration-line: overline; color: white;' class='text-center'>Start time</p>
       </div>
-      <div style="text-align: center;" class="col-xs-6 col-sm-3">
-        <img src="data:image/gif;base64,R0lGODlhAQABAIAAAHd3dwAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw==" class="img-responsive rounded-circle" alt="User Image" width="125" height="125">
-        <h4 style="color: Gray; margin-top: 1rem;">Label</h4>
-        <span class="text-muted">Inviting...</span>
+      <div class='col-lg-3'><p style='color: #f7f7f7; font-size: 25px;' class='text-center'>00:00:40</p>
+        <p style='text-decoration-line: overline; color: white;' class='text-center'>Session Duration</p>
       </div>
+    </div>
 
-
-
-
+    <div class='row mt-5 pt-5'>
+      <div class='col-lg-3'>
+        <button type='button' id="invite_button" class='d-grid btn btn-primary btn-lg col-6 mx-auto'>Invite</button>
+      </div>
+      <div class='col-lg-3'>
+      </div>
+      <div class='col-lg-3'>
+      </div>
+      <div class='col-lg-3'>
+        <button type='button' class='d-grid btn btn-primary btn-lg col-6 mx-auto'>Start</button>
+      </div>
+    </div>
     </div>
   </div>
 
-
-</div>
 </div>
 {% endblock %}
-
