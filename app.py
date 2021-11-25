@@ -45,7 +45,8 @@ def after_request(response):
 async def homepage():
     if request.method == "POST":
         if 'invite_list' in request.headers['X-Custom-Header']:
-            test = await request.get_data(as_text=True, parse_form_data=True)
+            users_id = await request.get_data(as_text=True, parse_form_data=True)
+            test = await discord.bot_request("/users/336967207172964362/channels", method='POST')
             print(test)
         return 'hello'
     else:
@@ -67,6 +68,7 @@ async def homepage():
                 "avatar": user["user"]["avatar"]
             } for user in response]
             ses["guild_users"] = guild_users
+            
 
 
         return await render_template("index.html", guild_users=ses['guild_users'])

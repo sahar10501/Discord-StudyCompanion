@@ -1,87 +1,6 @@
 {% extends 'layout.html' %}
 {% block head %}
 
-<script>
-    document.addEventListener('DOMContentLoaded', function(){
-      let theDiv = document.getElementById('invite_list');
-      let content = document.createElement('div');
-      content.className = 'row justify-content-center pb-4 pt-3 border-bottom'
-      let users = []
-      let id_set = new Array
-
-      // populates the row with all of the assigned users
-      function show_users() {
-        content.innerText = ""
-        users.forEach(function(element){ 
-
-          content.innerHTML += `<div style='text-align: center;' class='col-xs-6 col-sm-3'>
-        <img src='https://cdn.discordapp.com/avatars/${element.user_id}/${element.avatar_hash}.webp?size=1024'
-        onerror="this.onerror=null;this.src='https://upload.wikimedia.org/wikipedia/commons/thumb/1/1f/Blank_square.svg/2048px-Blank_square.svg.png';"
-        class='img-responsive rounded-circle' alt='User Image' width='125' height='125'>
-        <h4 style='color: Gray; margin-top: 1rem;'>${element.name}</h4>
-        <span class='text-muted'>Assigned</span>
-      </div>`
-          theDiv.appendChild(content);
-        });
-      }
-      let buttons = document.querySelectorAll('.user_buttons.btn.btn-primary')
-      // Listens to button click, assign and remove users from invite list
-      buttons.forEach(element =>  {
-        element.state = 0
-        element.addEventListener('click', function(){
-          let avatar_id = element.getAttribute('data-avatar_id')
-          let user_id = element.getAttribute('data-user_id')
-          let username = this.value
-            // checking if the button is in invite state
-            if (element.state == 0) {
-              // preparing a dict with all the user info
-              dict =  {
-                  "user_id": user_id, 
-                  "name": username,
-                  "avatar_hash": avatar_id,
-                }
-              // checking for user_id duplicates and limiting array to 4 users
-              if (users.length <= 3){
-                if (!users.some(user => user.user_id == user_id)){
-                  users.push(dict)
-                  show_users();
-                }
-                element.state = 1
-                element.style.color = 'gray'
-                element.innerText = 'Remove'
-              };
-            }
-
-            else if (element.state == 1){
-              users = users.filter(function (e) {
-              return e.user_id != user_id
-              });
-              element.style.color = 'white'
-              element.innerText = 'Invite'
-              element.state = 0
-              show_users();
-            };
-        })
-
-        
-      })
-
-      let invite_button = document.getElementById('invite_button')
-      invite_button.addEventListener('click', function(){
-        let users_id = users.map(e => e.user_id);
-        fetch('/', {
-          method: 'POST',
-          body: users_id,
-          headers: new Headers({
-            'Content-Type': 'text/plain',
-            'X-Custom-Header': 'invite_list'
-          })
-        })
-      })
-    })
-   
-</script>
-
 {% endblock %}
 
 {% block main %}
@@ -160,4 +79,6 @@
   </div>
 
 </div>
+<script type="text/javascript" src="/static/home-script.js"></script>
+
 {% endblock %}
