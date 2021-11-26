@@ -5,12 +5,14 @@ from hypercorn.asyncio import serve
 from hypercorn.config import Config
 from quart_discord import DiscordOAuth2Session, requires_authorization, Unauthorized
 from helpers import login_required
-from dotenv import load_dotenv
 import os
 import asyncio
 import aiohttp
+from http_client import AsyncHttpRequest
+from dotenv import load_dotenv
 
 QUART_APP = Quart(__name__)
+client = AsyncHttpRequest()
 load_dotenv()
 config = Config()
 config.bind = ["localhost:8080"]
@@ -46,7 +48,8 @@ async def homepage():
     if request.method == "POST":
         if 'invite_list' in request.headers['X-Custom-Header']:
             users_id = await request.get_data(as_text=True, parse_form_data=True)
-            test = await discord.bot_request("/users/336967207172964362/channels", method='POST')
+            users_i = users_id.split(",")
+            test = await client.fetch_all(users_i)
             print(test)
         return 'hello'
     else:
@@ -59,7 +62,7 @@ async def homepage():
                 async with session.get(url=f'https://discord.com/api/guilds/{guild_id}/members', headers=headers,
                                        params=params) as resp:
                     response = await resp.json()
-                    print(response)
+
                     await session.close()
             guild_users = [{
                 # add check to see if user is a bot
@@ -139,7 +142,6 @@ async def redirect_unauthorized(e):
 @QUART_APP.route("/me/")
 @requires_authorization
 async def me():
-    print('test')
     user = await discord.fetch_user()
     return await render_template("index.html")
 
