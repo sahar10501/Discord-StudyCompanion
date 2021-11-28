@@ -1,3 +1,4 @@
+from discord import channel
 from quart import Quart, redirect, render_template, request, url_for
 from quart import session as ses
 from discord_client import DiscordClient
@@ -49,8 +50,9 @@ async def homepage():
         if 'invite_list' in request.headers['X-Custom-Header']:
             users_id = await request.get_data(as_text=True, parse_form_data=True)
             users_i = users_id.split(",")
-            test = await client.fetch_all(users_i)
-            print(test)
+            dm_channels = await client.init_dm_channels(users_i)
+            dm_channels = [dm_channel["id"] for dm_channel in dm_channels]
+            await client.inv_multiple_users(dm_channels)
         return 'hello'
     else:
         guild_id = ses["user_guild_id"]
@@ -65,7 +67,7 @@ async def homepage():
 
                     await session.close()
             guild_users = [{
-                # add check to see if user is a bot
+
                 "user_id": user["user"]["id"],
                 "username": user["user"]["username"],
                 "avatar": user["user"]["avatar"]
