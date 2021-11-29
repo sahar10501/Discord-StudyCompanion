@@ -48,11 +48,15 @@ def after_request(response):
 async def homepage():
     if request.method == "POST":
         if 'invite_list' in request.headers['X-Custom-Header']:
-            users_id = await request.get_data(as_text=True, parse_form_data=True)
-            users_i = users_id.split(",")
-            dm_channels = await client.init_dm_channels(users_i)
-            dm_channels = [dm_channel["id"] for dm_channel in dm_channels]
-            await client.inv_multiple_users(dm_channels)
+            guild_id = ses["user_guild_id"]
+            users = await request.get_data(as_text=True, parse_form_data=True)
+            users_id = users.split(",")
+            dm_channels = await client.init_dm_channels(users_id)
+            dm_channel_id = [dm_channel["id"] for dm_channel in dm_channels]
+            voice_channel = await client.create_channel(guild_id=guild_id, channel_name="Python Study")
+            voice_channel_id = voice_channel["id"]
+            invite_msg = await client.create_invite(channel_id=voice_channel_id)
+            await client.inv_multiple_users(dm_channel_id, invite=invite_msg)
         return 'hello'
     else:
         guild_id = ses["user_guild_id"]
@@ -60,14 +64,8 @@ async def homepage():
         params = {"limit": 1000}
 
         if ses.get("guild_users") is None:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(url=f'https://discord.com/api/guilds/{guild_id}/members', headers=headers,
-                                       params=params) as resp:
-                    response = await resp.json()
-
-                    await session.close()
+            response = await client.get_guild_members(guild_id)
             guild_users = [{
-
                 "user_id": user["user"]["id"],
                 "username": user["user"]["username"],
                 "avatar": user["user"]["avatar"]
@@ -93,21 +91,11 @@ async def guild():
         if "guild_name" in await request.get_json(force=True):
             guid_name = await request.get_json(force=True)
             # Remember the guild - need to know the ID
-
             bot_guilds = await discord.bot_request("/users/@me/guilds", method="GET")
             bot_guilds_info = [{"guild_name": guild["name"], "id": guild["id"]} for guild in bot_guilds]
             user_guild_id = next(item for item in bot_guilds_info if item["guild_name"] == guid_name["guild_name"])
             ses["user_guild_id"] = user_guild_id["id"]
             ses["guild_users"] = None
-
-            # bot_guilds_info_1 = bot_guilds_info[0]
-            # user_guild_input_id = {k: bot_guilds_info_1[k] for k in bot_guilds_info_1 if k in guid_name and
-            # bot_guilds_info_1[k] == guid_name[k]}
-            # print(user_guild_input_id)
-            # x = dict(a=1, b=2)
-            # y = dict(a=2, b=2)
-            # shared_items = {k: x[k] for k in x if k in y and x[k] == y[k]}
-            # print(shared_items)
 
         return redirect("/")
     else:
