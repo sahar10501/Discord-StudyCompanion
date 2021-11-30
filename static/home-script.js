@@ -61,12 +61,19 @@ buttons.forEach(element =>  {
 
 let invite_button = document.getElementById('invite_button')
 invite_button.addEventListener('click', function(){
-  let users_id = users.map(e => e.user_id);
+  let channel_name = document.getElementById('channel_name')
+  // maps to an array all user id's
+  let users_id = {
+    'users_id': users.map(e => e.user_id),
+    'topic': channel_name.value
+  }
+  users_id = JSON.stringify(users_id)
+  console.log(users_id)
   fetch('/', {
     method: 'POST',
     body: users_id,
     headers: new Headers({
-      'Content-Type': 'text/plain',
+      'Content-Type': 'application/json',
       'X-Custom-Header': 'invite_list'
     })
   })

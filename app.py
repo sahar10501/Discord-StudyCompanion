@@ -1,5 +1,6 @@
+import json
 from discord import channel
-from quart import Quart, redirect, render_template, request, url_for
+from quart import Quart, redirect, render_template, request, url_for, jsonify
 from quart import session as ses
 from discord_client import DiscordClient
 from hypercorn.asyncio import serve
@@ -49,8 +50,9 @@ async def homepage():
     if request.method == "POST":
         if 'invite_list' in request.headers['X-Custom-Header']:
             guild_id = ses["user_guild_id"]
-            users = await request.get_data(as_text=True, parse_form_data=True)
-            users_id = users.split(",")
+            users = await request.get_data(parse_form_data=True)
+            print(users)
+            users_id = users['user_id'].split(",")
             dm_channels = await client.init_dm_channels(users_id)
             dm_channel_id = [dm_channel["id"] for dm_channel in dm_channels]
             voice_channel = await client.create_channel(guild_id=guild_id, channel_name="Python Study")
@@ -58,13 +60,12 @@ async def homepage():
             invite_msg = await client.create_invite(channel_id=voice_channel_id)
             await client.inv_multiple_users(dm_channel_id, invite=invite_msg)
         return 'hello'
+
     else:
         guild_id = ses["user_guild_id"]
-        headers = {"Authorization": 'Bot {}'.format(os.getenv("TOKEN"))}
-        params = {"limit": 1000}
-
         if ses.get("guild_users") is None:
             response = await client.get_guild_members(guild_id)
+            # move to http_client
             guild_users = [{
                 "user_id": user["user"]["id"],
                 "username": user["user"]["username"],
@@ -72,8 +73,6 @@ async def homepage():
             } for user in response]
             ses["guild_users"] = guild_users
             
-
-
         return await render_template("index.html", guild_users=ses['guild_users'])
 
 

@@ -25,7 +25,7 @@ class AsyncHttpRequest:
             return await response.json()
 
     async def init_dm_channels(self, users_id):
-            """Creating a dm channel before sending dm's"""
+            """ requesting multiple create channel requets """
             results = await asyncio.gather(*[self.create_dm_channel(user) for user in users_id], return_exceptions=True)
             return results
 
@@ -46,8 +46,9 @@ class AsyncHttpRequest:
     async def inv_multiple_users(self, chat_ids, invite):
             results = await asyncio.gather(*[self.send_dm(id, invite) for id in chat_ids], return_exceptions=True)
             return results
-
+    
     async def create_channel(self, guild_id, channel_name):
+        """ Creates a voice channel for the invited users to study in """
         if self.session is None:
             self.session = ClientSession()
         channel = {
