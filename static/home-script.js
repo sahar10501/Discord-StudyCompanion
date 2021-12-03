@@ -6,7 +6,7 @@ let users = []
 // populates the row with all of the assigned users
 function show_users() {
   content.innerText = ""
-  users.forEach(function(element){
+  users.forEach(function(element) {
     content.innerHTML += `<div style='text-align: center;' class='col-xs-6 col-sm-3'>
   <img src='https://cdn.discordapp.com/avatars/${element.user_id}/${element.avatar_hash}.webp?size=1024'
   onerror="this.onerror=null;this.src='https://upload.wikimedia.org/wikipedia/commons/thumb/1/1f/Blank_square.svg/2048px-Blank_square.svg.png';"
@@ -22,7 +22,7 @@ let buttons = document.querySelectorAll('.user_buttons.btn.btn-primary')
 // Listens to button click, assign and remove users from invite list
 buttons.forEach(element =>  {
   element.state = 0
-  element.addEventListener('click', function(){
+  element.addEventListener('click', function() {
     let avatar_id = element.getAttribute('data-avatar_id')
     let user_id = element.getAttribute('data-user_id')
     let username = this.value
@@ -37,7 +37,7 @@ buttons.forEach(element =>  {
 
         // checking for user_id duplicates and limiting array to 4 users
         if (users.length <= 3){
-          if (!users.some(user => user.user_id == user_id)){
+          if (!users.some(user => user.user_id == user_id)) {
             users.push(dict)
             show_users();
           }
@@ -60,7 +60,7 @@ buttons.forEach(element =>  {
 })
 
 let invite_button = document.getElementById('invite_button')
-invite_button.addEventListener('click', function(){
+invite_button.addEventListener('click', function() {
   let channel_name = document.getElementById('channel_name')
   // maps to an array all user id's
   let users_id = {
@@ -77,4 +77,19 @@ invite_button.addEventListener('click', function(){
       'X-Custom-Header': 'invite_list'
     })
   })
+  buttons.forEach(element =>  {
+    element.classList.add('disabled')
+  })
 })
+
+let open_modal = document.getElementById('open_inv_modal')
+open_modal.addEventListener('click', function() {
+  open_modal.state = 1
+  open_modal.classList.add('disabled')
+})
+
+let close_modal = document.getElementById('close_inv_modal')
+close_modal.addEventListener('click', function() {
+  open_modal.classList.remove('disabled')
+})
+

@@ -1,5 +1,3 @@
-import json
-from discord import channel
 from quart import Quart, redirect, render_template, request, url_for, jsonify
 from quart import session as ses
 from discord_client import DiscordClient
@@ -9,22 +7,38 @@ from quart_discord import DiscordOAuth2Session, requires_authorization, Unauthor
 from helpers import login_required
 import os
 import asyncio
-import aiohttp
 from http_client import AsyncHttpRequest
 from dotenv import load_dotenv
+import models
+from quart import Quart, jsonify
+
+from tortoise.contrib.quart import register_tortoise
+
+
+
 
 QUART_APP = Quart(__name__)
-client = AsyncHttpRequest()
-load_dotenv()
 config = Config()
+load_dotenv()
 config.bind = ["localhost:8080"]
-QUART_APP.secret_key = b"random bytes representing quart secret key"
+QUART_APP.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 QUART_APP.config["TEMPLATES_AUTO_RELOAD"] = True
+QUART_APP.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 QUART_APP.config["DISCORD_CLIENT_ID"] = os.getenv("DISCORD_CLIENT_ID")
 QUART_APP.config["DISCORD_CLIENT_SECRET"] = os.getenv("DISCORD_CLIENT_SECRET")
 QUART_APP.config["DISCORD_REDIRECT_URI"] = os.getenv("DISCORD_REDIRECT_URI")
 QUART_APP.config["DISCORD_BOT_TOKEN"] = os.getenv("TOKEN")
+QUART_APP.secret_key = b"61fca8b8c60e022044c2d67a4afb0c4f180f3b28c27785c8e32bc1c3f41c7d75"
 discord = DiscordOAuth2Session(QUART_APP)
+client = AsyncHttpRequest()
+# init the database
+register_tortoise(
+    QUART_APP,
+    db_url="sqlite://database.db",
+    modules={"models": ["models"]},
+    # ONLY FOR SQLITE
+    generate_schemas=True,
+)
 
 
 @QUART_APP.before_serving
@@ -50,12 +64,14 @@ async def homepage():
     if request.method == "POST":
         if 'invite_list' in request.headers['X-Custom-Header']:
             guild_id = ses["user_guild_id"]
-            users = await request.get_data(parse_form_data=True)
-            print(users)
-            users_id = users['user_id'].split(",")
+            users = await request.get_json()
+            users_id = users['users_id']
+            users_amount = len(users_id)
+            channel_name = users['topic']
             dm_channels = await client.init_dm_channels(users_id)
             dm_channel_id = [dm_channel["id"] for dm_channel in dm_channels]
-            voice_channel = await client.create_channel(guild_id=guild_id, channel_name="Python Study")
+            voice_channel = await client.create_channel(guild_id=guild_id, channel_name=channel_name,
+                                                        users_limit=users_amount)
             voice_channel_id = voice_channel["id"]
             invite_msg = await client.create_invite(channel_id=voice_channel_id)
             await client.inv_multiple_users(dm_channel_id, invite=invite_msg)

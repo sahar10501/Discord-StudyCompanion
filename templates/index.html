@@ -28,7 +28,7 @@
                       <div class='row'>
                         <div class='col-3'>
                           <button type='button' aria-pressed="true" data-bs-toggle="button"  class='user_buttons btn btn-primary active' style='background-color: #4e62f0;' 
-                          value='{{ user['username'] }}' data-avatar_id="{{ user['avatar'] }}" data-user_id="{{ user['user_id'] }}">Invite</button>
+                          value="{{ user['username'] }}" data-avatar_id="{{ user['avatar'] }}" data-user_id="{{ user['user_id'] }}">Invite</button>
                         </div>
                         <div class='col-3'><div style='margin-top: 5px; text-decoration: underline;'>Status</div></div>
                       </div>
@@ -36,8 +36,6 @@
                 </div>
              </li>
             {% endfor %}
-
-
           </ul>
       </div>
   </div>
@@ -66,7 +64,7 @@
     <div class='row mt-5 pt-5'>
       <div class='col-lg-3'>
         <button type='button' class='d-grid btn btn-primary btn-lg col-6 mx-auto' 
-        data-bs-toggle="modal" data-bs-target="#staticBackdrop" >Invite</button>
+        data-bs-toggle="modal" data-bs-target="#staticBackdrop" id="open_inv_modal" >Invite</button>
       </div>
       <div class='col-lg-3'>
       </div>
@@ -78,14 +76,13 @@
     </div>
     </div>
   </div>
-  <!-- Modal - Promts the users with the current connected and an option to proceed to lock
+  <!-- Modal - Prompts the users with the current connected and an option to proceed to lock
       Study session -->
   <div class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title" id="staticBackdropLabel">Create Study Session</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
           <form>
@@ -100,8 +97,8 @@
           </form>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-          <button type="button" id="invite_button" class="btn btn-primary">Invite</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id='close_inv_modal'>Close</button>
+          <button type="button" id="invite_button" class="btn btn-primary" data-bs-dismiss="modal" >Invite</button>
         </div>
       </div>
     </div>

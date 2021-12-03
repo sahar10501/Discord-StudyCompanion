@@ -127,3 +127,7 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+sqlite3.exe
+database.db
+.gitignore
+database.db-shm
