@@ -4,17 +4,15 @@ from discord_client import DiscordClient
 from hypercorn.asyncio import serve
 from hypercorn.config import Config
 from quart_discord import DiscordOAuth2Session, requires_authorization, Unauthorized
-from helpers import login_required
+from helpers import login_required, active_session
 import os
 import asyncio
 from http_client import AsyncHttpRequest
 from dotenv import load_dotenv
-import models
+from models import Session
 from quart import Quart, jsonify
-
+import logging
 from tortoise.contrib.quart import register_tortoise
-
-
 
 
 QUART_APP = Quart(__name__)
@@ -40,7 +38,6 @@ register_tortoise(
     generate_schemas=True,
 )
 
-
 @QUART_APP.before_serving
 async def before_serving():
     loop = asyncio.get_event_loop()
@@ -63,7 +60,11 @@ def after_request(response):
 async def homepage():
     if request.method == "POST":
         if 'invite_list' in request.headers['X-Custom-Header']:
+            # Checks if the user is already in a session
+            if await Session.filter(participants__having=ses['user_id']).all():
+                return "You are already in a session"
             guild_id = ses["user_guild_id"]
+            user_id = ses["user_id"]
             users = await request.get_json()
             users_id = users['users_id']
             users_amount = len(users_id)
@@ -75,6 +76,11 @@ async def homepage():
             voice_channel_id = voice_channel["id"]
             invite_msg = await client.create_invite(channel_id=voice_channel_id)
             await client.inv_multiple_users(dm_channel_id, invite=invite_msg)
+
+            # store in db
+            test = await Session.create(name=channel_name, participants=users_id, manager=user_id, guild=guild_id,)
+            print(test.name)
+
         return 'hello'
 
     else:
@@ -89,7 +95,7 @@ async def homepage():
             } for user in response]
             ses["guild_users"] = guild_users
             
-        return await render_template("index.html", guild_users=ses['guild_users'])
+        return await render_template("index.html", guild_users=ses["guild_users"])
 
 
 @QUART_APP.route("/login/")
@@ -105,7 +111,7 @@ async def guild():
     if request.method == "POST":
         if "guild_name" in await request.get_json(force=True):
             guid_name = await request.get_json(force=True)
-            # Remember the guild - need to know the ID
+            # need to change to my client
             bot_guilds = await discord.bot_request("/users/@me/guilds", method="GET")
             bot_guilds_info = [{"guild_name": guild["name"], "id": guild["id"]} for guild in bot_guilds]
             user_guild_id = next(item for item in bot_guilds_info if item["guild_name"] == guid_name["guild_name"])
@@ -115,11 +121,14 @@ async def guild():
         return redirect("/")
     else:
         if ses.get("user_guilds_list") is None:
+            # need to change to my client
             user_guilds = await discord.fetch_guilds()
+            user_id = discord.client_id
             user_guilds = [str(name) for name in user_guilds]
+            # need to change to my client
             bot_guilds = await discord.bot_request("/users/@me/guilds", method="GET")
             bot_guilds_name = [str(name['name']) for name in bot_guilds]
-            ses['user_guilds_list'], ses['bot_guilds_list'] = user_guilds, bot_guilds_name
+            ses['user_guilds_list'], ses['bot_guilds_list'], ses["user_id"] = user_guilds, bot_guilds_name, user_id
 
         return await render_template("guild.html",
                                      guilds=ses['user_guilds_list'],
@@ -142,13 +151,6 @@ async def logout():
 @QUART_APP.errorhandler(Unauthorized)
 async def redirect_unauthorized(e):
     return redirect(url_for("login"))
-
-
-@QUART_APP.route("/me/")
-@requires_authorization
-async def me():
-    user = await discord.fetch_user()
-    return await render_template("index.html")
 
 
 asyncio.run(serve(QUART_APP, config))

@@ -131,3 +131,4 @@ sqlite3.exe
 database.db
 .gitignore
 database.db-shm
+database.db-wal

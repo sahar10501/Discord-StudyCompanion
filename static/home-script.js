@@ -77,6 +77,12 @@ invite_button.addEventListener('click', function() {
       'X-Custom-Header': 'invite_list'
     })
   })
+  .then(function(response){
+    return response.text()
+  })
+  .then(function(data){
+    console.log(data);
+  })
   buttons.forEach(element =>  {
     element.classList.add('disabled')
   })
