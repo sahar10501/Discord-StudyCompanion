@@ -6,7 +6,8 @@
 {% block main %}
 <div class='container-fluid p-0 mt-3 mb-4'>
 <div class='row'>
-  <div class='col-sm-12 col-lg-3 p-sm-2'>
+  {% if guild_users %} 
+  <div id="guild_users_col" class='col-3'>
     <div class='vertical-menu'>
         <ul style='padding: 0; margin-left: 1rem;'>
         {% for user in guild_users %}
@@ -39,8 +40,9 @@
           </ul>
       </div>
   </div>
+  {% endif %}
 
-  <div class='col-xs-12 col-lg-9'>
+  <div class='col'>
     <div id='invite_list'></div>
  
     <div class='row mt-4'>
@@ -48,41 +50,49 @@
         <p style='color: white; font-size: 25px; text-decoration-line: underline;' 
           class='text-center'>Session Topic:
         </p>
-        <p style=' color: white; font-size: 1rem;' class='text-center'>Python Study</p>
+        <p id='channel_name_html' style=' color: white; font-size: 1rem;' class='text-center'>{% if session_manager is defined %} {{session_manager.name}} {% endif %}</p>
       </div>
       <div class='col-lg-3'><p style='color: #f7f7f7; font-size: 25px;' class='text-center'>53#</p>
         <p style='text-decoration-line: overline; color: white;' class='text-center'>Session number</p>
       </div>
-      <div class='col-lg-3'><p style='color: #f7f7f7; font-size: 25px;' class='text-center'>18:20</p>
-        <p style='text-decoration-line: overline; color: white;' class='text-center'>Start time</p>
+      <div class='col-lg-3'><p id="current_time" style='color: #f7f7f7; font-size: 25px;' class='text-center'></p>
+        <p style='text-decoration-line: overline; color: white;' class='text-center'>Start time {% if user_info is defined %}aaaaa{{user_info }}{% endif %}</p>
       </div>
-      <div class='col-lg-3'><p style='color: #f7f7f7; font-size: 25px;' class='text-center'>00:00:40</p>
+      <div class='col-lg-3'><p  style='color: #f7f7f7; font-size: 25px;' class='text-center'>00:00:00</p>
         <p style='text-decoration-line: overline; color: white;' class='text-center'>Session Duration</p>
       </div>
     </div>
 
     <div class='row mt-5 pt-5'>
+      {% if session_manager is not defined %}
       <div class='col-lg-3'>
         <button type='button' class='d-grid btn btn-primary btn-lg col-6 mx-auto' 
-        data-bs-toggle="modal" data-bs-target="#staticBackdrop" id="open_inv_modal" >Invite</button>
+        data-bs-toggle="modal" data-bs-target="#invite_modal" id="open_inv_modal">Invite</button>
       </div>
       <div class='col-lg-3'>
       </div>
       <div class='col-lg-3'>
       </div>
-      <div class='col-lg-3'>
-        <button type='button' class='d-grid btn btn-primary btn-lg col-6 mx-auto'>Start</button>
+      {% endif %}
+      <div class='col'>
+        {% if session_manager is not defined %}
+        <button type='button' value="start" class='d-grid btn btn-primary btn-lg col-6 mx-auto' 
+        data-bs-toggle="modal" data-bs-target="#start_modal">Start</button>
+        {% else %}
+        <button type='button' id='session_control' value="stop" class='d-grid btn btn-primary btn-lg col-6 mx-auto'>Stop</button>
+
+        {% endif %}
+
       </div>
     </div>
     </div>
   </div>
-  <!-- Modal - Prompts the users with the current connected and an option to proceed to lock
-      Study session -->
-  <div class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+  <!-- Modal - Prompts the users with the abillity to set a study session -->
+  <div class="modal fade" id="invite_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title" id="staticBackdropLabel">Create Study Session</h5>
+          <h5 class="modal-title" id="invite_modalLabel">Create Study Session</h5>
         </div>
         <div class="modal-body">
           <form>
@@ -99,6 +109,26 @@
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id='close_inv_modal'>Close</button>
           <button type="button" id="invite_button" class="btn btn-primary" data-bs-dismiss="modal" >Invite</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+
+  <!-- Modal - Prompts the users with the current connected users and an option to proceed to lock
+      Study session  -->
+  <div class="modal fade" id="start_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="start_modalLabel">Start the Session!</h5>
+        </div>
+        <div class="modal-body">
+          
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id='close_inv_modal'>Close</button>
+          <button type="button"  id="session_control" value="start" class="btn btn-primary" data-bs-dismiss="modal" >Start</button>
         </div>
       </div>
     </div>

@@ -132,3 +132,5 @@ database.db
 .gitignore
 database.db-shm
 database.db-wal
+session.db-wal
+session.db-shm

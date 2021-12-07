@@ -1,6 +1,5 @@
 from quart import session, redirect
 from functools import wraps
-from models import Session
 
 
 def login_required(f):
@@ -13,14 +12,3 @@ def login_required(f):
             return redirect("/guild")
         return await f(*args, **kwargs)
     return decorated_function
-
-
-async def active_session(session):
-    print('test')
-    if await Session.filter(participants=session).all():
-        test = await Session.filter(participants=session).all()
-        print(test)
-        return True
-    else:
-        print('test')
-        return False

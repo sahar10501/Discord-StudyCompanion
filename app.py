@@ -1,27 +1,22 @@
-from quart import Quart, redirect, render_template, request, url_for, jsonify
+from quart import Quart, redirect, render_template, request, url_for
 from quart import session as ses
-from discord_client import DiscordClient
 from hypercorn.asyncio import serve
 from hypercorn.config import Config
 from quart_discord import DiscordOAuth2Session, requires_authorization, Unauthorized
-from helpers import login_required, active_session
+from helpers import login_required
 import os
 import asyncio
-from http_client import AsyncHttpRequest
+from clients import AsyncHttpRequest
+from clients import DiscordClient
 from dotenv import load_dotenv
-from models import Session
-from quart import Quart, jsonify
-import logging
+from models import StudySession, Participant
 from tortoise.contrib.quart import register_tortoise
-
 
 QUART_APP = Quart(__name__)
 config = Config()
 load_dotenv()
 config.bind = ["localhost:8080"]
-QUART_APP.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 QUART_APP.config["TEMPLATES_AUTO_RELOAD"] = True
-QUART_APP.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 QUART_APP.config["DISCORD_CLIENT_ID"] = os.getenv("DISCORD_CLIENT_ID")
 QUART_APP.config["DISCORD_CLIENT_SECRET"] = os.getenv("DISCORD_CLIENT_SECRET")
 QUART_APP.config["DISCORD_REDIRECT_URI"] = os.getenv("DISCORD_REDIRECT_URI")
@@ -37,6 +32,7 @@ register_tortoise(
     # ONLY FOR SQLITE
     generate_schemas=True,
 )
+
 
 @QUART_APP.before_serving
 async def before_serving():
@@ -59,29 +55,42 @@ def after_request(response):
 @login_required
 async def homepage():
     if request.method == "POST":
-        if 'invite_list' in request.headers['X-Custom-Header']:
-            # Checks if the user is already in a session
-            if await Session.filter(participants__having=ses['user_id']).all():
-                return "You are already in a session"
-            guild_id = ses["user_guild_id"]
-            user_id = ses["user_id"]
-            users = await request.get_json()
-            users_id = users['users_id']
-            users_amount = len(users_id)
-            channel_name = users['topic']
-            dm_channels = await client.init_dm_channels(users_id)
-            dm_channel_id = [dm_channel["id"] for dm_channel in dm_channels]
-            voice_channel = await client.create_channel(guild_id=guild_id, channel_name=channel_name,
-                                                        users_limit=users_amount)
-            voice_channel_id = voice_channel["id"]
-            invite_msg = await client.create_invite(channel_id=voice_channel_id)
-            await client.inv_multiple_users(dm_channel_id, invite=invite_msg)
+        # Checks if the user is already a manager of a session
+        if not await StudySession.filter(manager=ses["user_id"]):
+            if "invite_list" in request.headers["X-Custom-Header"]:
+                users = await request.get_json()
+                users_id = users["users_id"]
+                if 1 <= len(users_id) <= 3:
+                    guild_id = ses["user_guild_id"]
+                    user_id = ses["user_id"]
+                    users_amount = len(users_id)
+                    channel_name = users["topic"]
+                    print(f"{channel_name} hello")
+                    dm_channels = await client.init_multiple_dm_channels(users_id)
+                    dm_channel_id = [dm_channel["id"] for dm_channel in dm_channels]
+                    voice_channel = await client.create_voice_channel(guild_id=guild_id, channel_name=channel_name,
+                                                                      users_limit=users_amount)
+                    voice_channel_id = voice_channel["id"]
+                    invite_msg = await client.create_invite(channel_id=voice_channel_id)
+                    await client.inv_multiple_users(dm_channel_id, invite=invite_msg)
+                    # store in db
+                    await StudySession.create(name=channel_name if channel_name else "No Topic Study Room",
+                                              manager=user_id, guild=guild_id,
+                                              voice_channel_id=voice_channel_id)
+                else:
+                    return "Wrong user number"
+        if "start_session" in request.headers["X-Custom-Header"]:
+            query = await StudySession.filter(manager=ses["user_id"]).first()
+            await Participant.create(session_id=query.id, discord_id=336967207172964362)
+        if "stop_session" in request.headers["X-Custom-Header"]:
+            query = await StudySession.filter(manager=ses["user_id"]).first()
+            await client.delete_channel(channel_id=query.voice_channel_id)
+            # Delete the session
+            await query.delete()
+            # need to remove the invite link too
+            return await render_template("index.html", guild_users=ses["guild_users"])
+        return "hello"
 
-            # store in db
-            test = await Session.create(name=channel_name, participants=users_id, manager=user_id, guild=guild_id,)
-            print(test.name)
-
-        return 'hello'
 
     else:
         guild_id = ses["user_guild_id"]
@@ -94,7 +103,11 @@ async def homepage():
                 "avatar": user["user"]["avatar"]
             } for user in response]
             ses["guild_users"] = guild_users
-            
+        if await StudySession.filter(manager=ses["user_id"]).all():
+            study_session = await StudySession.filter(manager=ses["user_id"]).first()
+            user_info = await Participant.filter(discord_id=ses["user_id"]).first()
+            #print(user_info.start.time())
+            return await render_template("index.html", session_manager=study_session, user_info=user_info)
         return await render_template("index.html", guild_users=ses["guild_users"])
 
 
@@ -111,28 +124,27 @@ async def guild():
     if request.method == "POST":
         if "guild_name" in await request.get_json(force=True):
             guid_name = await request.get_json(force=True)
-            # need to change to my client
+            # need to switch to my client
             bot_guilds = await discord.bot_request("/users/@me/guilds", method="GET")
-            bot_guilds_info = [{"guild_name": guild["name"], "id": guild["id"]} for guild in bot_guilds]
+            bot_guilds_info = [{"guild_name": bot_guild["name"], "id": bot_guild["id"]} for bot_guild in bot_guilds]
             user_guild_id = next(item for item in bot_guilds_info if item["guild_name"] == guid_name["guild_name"])
             ses["user_guild_id"] = user_guild_id["id"]
             ses["guild_users"] = None
-
+            user_id = await discord.fetch_user()
+            ses["user_id"] = user_id.id
         return redirect("/")
     else:
         if ses.get("user_guilds_list") is None:
-            # need to change to my client
+            # need to switch to my client
             user_guilds = await discord.fetch_guilds()
-            user_id = discord.client_id
             user_guilds = [str(name) for name in user_guilds]
-            # need to change to my client
+            # need to switch to my client
             bot_guilds = await discord.bot_request("/users/@me/guilds", method="GET")
-            bot_guilds_name = [str(name['name']) for name in bot_guilds]
-            ses['user_guilds_list'], ses['bot_guilds_list'], ses["user_id"] = user_guilds, bot_guilds_name, user_id
-
+            bot_guilds_name = [str(name["name"]) for name in bot_guilds]
+            ses["user_guilds_list"], ses["bot_guilds_list"] = user_guilds, bot_guilds_name
         return await render_template("guild.html",
-                                     guilds=ses['user_guilds_list'],
-                                     common_guilds=ses['bot_guilds_list'])
+                                     guilds=ses["user_guilds_list"],
+                                     common_guilds=ses["bot_guilds_list"])
 
 
 @QUART_APP.route("/callback/")

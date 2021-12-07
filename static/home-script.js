@@ -3,6 +3,14 @@ let content = document.createElement('div');
 content.className = 'row justify-content-center pb-4 pt-3 border-bottom'
 let users = []
 
+
+let current_time = document.getElementById('current_time')
+const today = new Date();
+const m = new Date();
+let minutes = String(m.getMinutes()).padStart(2, '0');
+const time = today.getHours() + ":" + minutes + ":" + today.getSeconds();
+current_time.innerHTML = time
+
 // populates the row with all of the assigned users
 function show_users() {
   content.innerText = ""
@@ -25,6 +33,7 @@ buttons.forEach(element =>  {
   element.addEventListener('click', function() {
     let avatar_id = element.getAttribute('data-avatar_id')
     let user_id = element.getAttribute('data-user_id')
+    console.log(user_id)
     let username = this.value
       // checking if the button is in invite state
       if (element.state == 0) {
@@ -62,6 +71,7 @@ buttons.forEach(element =>  {
 let invite_button = document.getElementById('invite_button')
 invite_button.addEventListener('click', function() {
   let channel_name = document.getElementById('channel_name')
+  let topic = document.getElementById('channel_name_html')
   // maps to an array all user id's
   let users_id = {
     'users_id': users.map(e => e.user_id),
@@ -69,6 +79,7 @@ invite_button.addEventListener('click', function() {
   }
   users_id = JSON.stringify(users_id)
   console.log(users_id)
+  // post the list of invited users
   fetch('/', {
     method: 'POST',
     body: users_id,
@@ -77,25 +88,45 @@ invite_button.addEventListener('click', function() {
       'X-Custom-Header': 'invite_list'
     })
   })
-  .then(function(response){
-    return response.text()
-  })
-  .then(function(data){
-    console.log(data);
-  })
+  // disables all the invite buttons after inviting users
   buttons.forEach(element =>  {
     element.classList.add('disabled')
+  topic.innerText = channel_name.value
+  })
+})
+
+let session_control = document.getElementById('session_control')
+session_control.addEventListener('click', function(){
+  session_control.classList.add('disabled')
+  // need to add the list of users that accepted the invite and fetch it to the server in order to add as particpants in the db
+  let user_id = {'test':''}
+  user_id = JSON.stringify(user_id)
+  // Stop or Start session
+  fetch('/', {
+    method: 'POST',
+    body: user_id,
+    headers: new Headers({
+      'Content-Type': 'application/json',
+      'X-Custom-Header': session_control.value+'_session'
+    })
+  })
+  .then(function(response){
+    if(response.status == 200){
+      window.location.href = '/'
+  }
+    
   })
 })
 
 let open_modal = document.getElementById('open_inv_modal')
+if (typeof open_modal == "undefined") {
 open_modal.addEventListener('click', function() {
-  open_modal.state = 1
+  open_modal.classList.add('disabled')
   open_modal.classList.add('disabled')
 })
+}
 
 let close_modal = document.getElementById('close_inv_modal')
 close_modal.addEventListener('click', function() {
   open_modal.classList.remove('disabled')
 })
-
