@@ -1,3 +1,4 @@
+
 let theDiv = document.getElementById('invite_list');
 let content = document.createElement('div');
 content.className = 'row justify-content-center pb-4 pt-3 border-bottom'
@@ -20,7 +21,7 @@ function show_users() {
   onerror="this.onerror=null;this.src='https://upload.wikimedia.org/wikipedia/commons/thumb/1/1f/Blank_square.svg/2048px-Blank_square.svg.png';"
   class='img-responsive rounded-circle' alt='User Image' width='125' height='125'>
   <h4 style='color: Gray; margin-top: 1rem;'>${element.name}</h4>
-  <span class='text-muted'>Assigned</span>
+  <span class='text-muted'>Invited</span>
 </div>`
     theDiv.appendChild(content);
   });
@@ -55,9 +56,8 @@ buttons.forEach(element =>  {
           element.innerText = 'Remove'
         };
       }
-
       else if (element.state == 1){
-        users = users.filter(function (e) {
+        users = users.filter(function(e) {
         return e.user_id != user_id
         });
         element.style.color = 'white'
@@ -78,7 +78,6 @@ invite_button.addEventListener('click', function() {
     'topic': channel_name.value
   }
   users_id = JSON.stringify(users_id)
-  console.log(users_id)
   // post the list of invited users
   fetch('/', {
     method: 'POST',
@@ -118,15 +117,72 @@ session_control.addEventListener('click', function(){
   })
 })
 
-let open_modal = document.getElementById('open_inv_modal')
-if (typeof open_modal == "undefined") {
-open_modal.addEventListener('click', function() {
-  open_modal.classList.add('disabled')
-  open_modal.classList.add('disabled')
+let open_inv_modal = document.getElementById('open_inv_modal')
+// Need to add the modal with the JS code for the click inv_button event
+// if is unneeded
+if (typeof open_inv_modal == 'undefined') {
+open_inv_modal.addEventListener('click', function() {
+  open_inv_modal.classList.add('disabled')
 })
 }
 
-let close_modal = document.getElementById('close_inv_modal')
-close_modal.addEventListener('click', function() {
-  open_modal.classList.remove('disabled')
+let close_inv_modal = document.getElementById('close_inv_modal')
+close_inv_modal.addEventListener('click', function() {
+  open_inv_modal.classList.remove('disabled')
 })
+
+let open_start_modal = document.getElementById('open_start_modal')
+open_start_modal.addEventListener('click', function(){
+  let user_table = document.getElementById('inv_user_tbl')
+  for (let i = 0; i < users.length; i++){
+    console.log(users[i]['name'])
+
+    let row = user_table.insertRow();
+    var cell = row.insertCell(0)
+    cell.innerHTML = i+1;
+    let cell1 = row.insertCell()
+    cell1.innerHTML = users[i]['name'];
+    let cell2 = row.insertCell()
+    cell2.innerHTML = 'Invited';
+    let cell3 = row.insertCell()
+    cell3.innerHTML = "<button type='button' value='"+users[i]['user_id']+"'class='btn btn-outline-primary btn-sm'>Check Status</button>";
+  }
+  let check_button = document.querySelectorAll('.btn.btn-outline-primary.btn-sm')
+  check_button.forEach(element => {
+    element.addEventListener('click', function(){
+      let user_check = {'user_id': this.value}
+      user_check = JSON.stringify(user_check)
+      fetch('/', {
+        method: 'POST',
+        body: user_check,
+        headers: new Headers({
+          'Content-Type': 'application/json',
+          'X-Custom-Header': 'check_user'
+        })
+      })
+      .then(function(response) {
+        return response.text();
+      })
+      .then(function(data) {
+        console.log(data);
+        if (data == "Invited"){
+          let spanTag = document.createElement("SPAN"); 
+          spanTag.setAttribute('id', 'loading_span')
+          spanTag.className = "spinner-grow spinner-grow-sm"
+          element.innerHTML = "Checking"
+          element.appendChild(spanTag)
+          element.classList.add('disabled')
+          span_tag_id = document.getElementById('loading_span')
+          setTimeout(() => {element.classList.remove('disabled'); element.removeChild(span_tag_id); element.innerText = 'Check Status'}, 2000)
+        }
+        else {
+          element.classList.add('disabled')
+          element.innerText = "Ready!"
+          
+        }
+        
+      })
+    })
+  })
+})
+

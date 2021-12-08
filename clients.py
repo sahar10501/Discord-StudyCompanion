@@ -14,6 +14,7 @@ class AsyncHttpRequest:
         token = os.getenv("TOKEN")
         self.headers = {"Authorization": f'Bot {token}'}
         self.base_url = "https://discord.com/api"
+        self.book_emoji = "📗"
 
     async def create_dm_channel(self, user_id):
         """ Creating an active dm channel between the bot and the invited user """
@@ -36,14 +37,21 @@ class AsyncHttpRequest:
                                     params={"limit": 1000}) as response:
             return await response.json()
 
-    async def send_inv_dm(self, chat_ids, invite):
+    async def send_inv_dm(self, chat_id, invite):
         """ The invite msg the invited user is receiving """
         if self.session is None:
             self.session = ClientSession()
-        async with self.session.post(url=f"{self.base_url}/channels/{chat_ids}/messages",
-                                     json={"content": f"Your Friend is inviting you to study {invite}"},
-                                     headers=self.headers) as response:
-            return await response.json()
+
+        message = f"\n 📬 Hello! 📬\n Your Friend is inviting you to study !\n Click the green book to accept! \n{invite}"
+        async with self.session.post(url=f"{self.base_url}/channels/{chat_id}/messages", json={"content": message},
+                                     headers=self.headers) as temp_response:
+            temp_response = await temp_response.json()
+        msg_id = temp_response["id"]
+
+        async with self.session.put(
+                url=f"{self.base_url}/channels/{chat_id}/messages/{msg_id}/reactions/{self.book_emoji}/@me",
+                headers=self.headers) as response:
+            return msg_id
 
     async def inv_multiple_users(self, chat_ids, invite):
         results = await asyncio.gather(*[self.send_inv_dm(id, invite) for id in chat_ids], return_exceptions=True)
@@ -84,6 +92,14 @@ class AsyncHttpRequest:
         async with self.session.delete(url=f"{self.base_url}/channels/{channel_id}", headers=self.headers) as response:
             response = await response.json()
         return response
+
+    async def check_reaction(self, active_dm_session):
+        if self.session is None:
+            self.session = ClientSession()
+        async with self.session.get(
+                url=f"{self.base_url}/channels/{active_dm_session[0]}/messages/{active_dm_session[1]}/reactions/"
+                    f"{self.book_emoji}", headers=self.headers) as response:
+            return await response.json()
 
 
 class DiscordClient(commands.Cog):

@@ -76,11 +76,10 @@
       {% endif %}
       <div class='col'>
         {% if session_manager is not defined %}
-        <button type='button' value="start" class='d-grid btn btn-primary btn-lg col-6 mx-auto' 
+        <button type='button' id="open_start_modal" value="start" class='d-grid btn btn-primary btn-lg col-6 mx-auto' 
         data-bs-toggle="modal" data-bs-target="#start_modal">Start</button>
         {% else %}
         <button type='button' id='session_control' value="stop" class='d-grid btn btn-primary btn-lg col-6 mx-auto'>Stop</button>
-
         {% endif %}
 
       </div>
@@ -124,7 +123,19 @@
           <h5 class="modal-title" id="start_modalLabel">Start the Session!</h5>
         </div>
         <div class="modal-body">
-          
+          <table class="table">
+            <thead>
+              <tr>
+                <th scope="col">#</th>
+                <th scope="col">Name</th>
+                <th scope="col">Status</th>
+                <th scope="col">Action</th>
+              </tr>
+            </thead>
+            <tbody id="inv_user_tbl">
+              
+            </tbody>
+          </table>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id='close_inv_modal'>Close</button>

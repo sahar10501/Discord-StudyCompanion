@@ -58,22 +58,26 @@ async def homepage():
         # Checks if the user is already a manager of a session
         if not await StudySession.filter(manager=ses["user_id"]):
             if "invite_list" in request.headers["X-Custom-Header"]:
-                users = await request.get_json()
-                users_id = users["users_id"]
+                payload = await request.get_json()
+                users_id = payload["users_id"]
                 if 1 <= len(users_id) <= 3:
                     guild_id = ses["user_guild_id"]
                     user_id = ses["user_id"]
                     users_amount = len(users_id)
-                    channel_name = users["topic"]
-                    print(f"{channel_name} hello")
+                    channel_name = payload["topic"]
+
                     dm_channels = await client.init_multiple_dm_channels(users_id)
                     dm_channel_id = [dm_channel["id"] for dm_channel in dm_channels]
                     voice_channel = await client.create_voice_channel(guild_id=guild_id, channel_name=channel_name,
                                                                       users_limit=users_amount)
                     voice_channel_id = voice_channel["id"]
                     invite_msg = await client.create_invite(channel_id=voice_channel_id)
-                    await client.inv_multiple_users(dm_channel_id, invite=invite_msg)
-                    # store in db
+                    inv_msg_id = await client.inv_multiple_users(dm_channel_id, invite=invite_msg)
+                    # wrapping the session by a user id and his two values, msg_id and channel id
+                    active_session_payload = dict(zip(users_id, list((zip(dm_channel_id, inv_msg_id)))))
+                    ses["active_session_payload"] = active_session_payload
+
+                    # stores in db
                     await StudySession.create(name=channel_name if channel_name else "No Topic Study Room",
                                               manager=user_id, guild=guild_id,
                                               voice_channel_id=voice_channel_id)
@@ -87,8 +91,21 @@ async def homepage():
             await client.delete_channel(channel_id=query.voice_channel_id)
             # Delete the session
             await query.delete()
+            ses["active_session_payload"] = None
             # need to remove the invite link too
             return await render_template("index.html", guild_users=ses["guild_users"])
+        if "check_user" in request.headers["X-Custom-Header"]:
+            check_user_id = await request.get_json()
+            check_user_id = check_user_id["user_id"]
+            active_sessions = ses["active_session_payload"]
+            active_dm_session = active_sessions[check_user_id]
+            user_reaction = await client.check_reaction(active_dm_session)
+            if user_reaction[0]["id"] == check_user_id:
+                
+                return "Joined"
+            else:
+                return "Invited"
+
         return "hello"
 
 
@@ -106,7 +123,7 @@ async def homepage():
         if await StudySession.filter(manager=ses["user_id"]).all():
             study_session = await StudySession.filter(manager=ses["user_id"]).first()
             user_info = await Participant.filter(discord_id=ses["user_id"]).first()
-            #print(user_info.start.time())
+            # View the page as a ses manager
             return await render_template("index.html", session_manager=study_session, user_info=user_info)
         return await render_template("index.html", guild_users=ses["guild_users"])
 
