@@ -5,6 +5,7 @@ from tortoise import fields
 class StudySession(Model):
     id = fields.IntField(pk=True)
     name = fields.CharField(25)
+    desc = fields.CharField(250)
     manager = fields.BigIntField()
     guild = fields.BigIntField()
     voice_channel_id = fields.BigIntField()
@@ -19,3 +20,11 @@ class Participant(Model):
     discord_id = fields.BigIntField(unique=True)
     start = fields.DatetimeField(auto_now_add=True)
     end = fields.DatetimeField(auto_now=True)
+
+
+class History(Model):
+    id = fields.IntField(pk=True)
+    session_name = fields.CharField(25)
+    desc = fields.CharField(250)
+    duration = fields.TimeDeltaField()
+    user_id = fields.BigIntField()

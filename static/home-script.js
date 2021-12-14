@@ -71,11 +71,14 @@ buttons.forEach(element =>  {
 let invite_button = document.getElementById('invite_button')
 invite_button.addEventListener('click', function() {
   let channel_name = document.getElementById('channel_name')
+  let desc = document.getElementById('description')
   let topic = document.getElementById('channel_name_html')
+
   // maps to an array all user id's
   let users_id = {
     'users_id': users.map(e => e.user_id),
-    'topic': channel_name.value
+    'topic': channel_name.value,
+    'desc': desc.value
   }
   users_id = JSON.stringify(users_id)
   // post the list of invited users

@@ -9,9 +9,13 @@ import asyncio
 from clients import AsyncHttpRequest
 from clients import DiscordClient
 from dotenv import load_dotenv
-from models import StudySession, Participant
+from models import StudySession, Participant, History
 from tortoise.contrib.quart import register_tortoise
+import pytz
+from datetime import datetime
+from datetime import timedelta
 
+datetime.utcnow().replace(tzinfo=pytz.utc)
 QUART_APP = Quart(__name__)
 config = Config()
 load_dotenv()
@@ -56,7 +60,7 @@ def after_request(response):
 async def homepage():
     if request.method == "POST":
         # Checks if the user is already a manager of a session
-        if not await StudySession.filter(manager=ses["user_id"]):
+        if not await StudySession.filter(manager=ses["user_id"]).exists():
             if "invite_list" in request.headers["X-Custom-Header"]:
                 payload = await request.get_json()
                 users_id = payload["users_id"]
@@ -65,7 +69,8 @@ async def homepage():
                     user_id = ses["user_id"]
                     users_amount = len(users_id)
                     channel_name = payload["topic"]
-
+                    desc = payload["desc"]
+                    print(desc)
                     dm_channels = await client.init_multiple_dm_channels(users_id)
                     dm_channel_id = [dm_channel["id"] for dm_channel in dm_channels]
                     voice_channel = await client.create_voice_channel(guild_id=guild_id, channel_name=channel_name,
@@ -76,38 +81,53 @@ async def homepage():
                     # wrapping the session by a user id and his two values, msg_id and channel id
                     active_session_payload = dict(zip(users_id, list((zip(dm_channel_id, inv_msg_id)))))
                     ses["active_session_payload"] = active_session_payload
-
+                    ses["active_session_users"] = [ses["user_id"], ]
                     # stores in db
                     await StudySession.create(name=channel_name if channel_name else "No Topic Study Room",
                                               manager=user_id, guild=guild_id,
-                                              voice_channel_id=voice_channel_id)
+                                              voice_channel_id=voice_channel_id, desc=desc)
                 else:
                     return "Wrong user number"
         if "start_session" in request.headers["X-Custom-Header"]:
             query = await StudySession.filter(manager=ses["user_id"]).first()
-            await Participant.create(session_id=query.id, discord_id=336967207172964362)
+            # adds all ready users
+            for user in ses["active_session_users"]:
+                await Participant.create(session_id=query.id, discord_id=user)
         if "stop_session" in request.headers["X-Custom-Header"]:
             query = await StudySession.filter(manager=ses["user_id"]).first()
+            participants = await Participant.filter(session=query.id).all()
+            current_time = datetime.now(pytz.utc)
+            for participant in participants:
+                duration = current_time - participant.start
+                if duration.total_seconds() >= 300:
+                    history = await History.create(session_name=query.name, desc=query.desc, user_id=participant.discord_id,
+                                                   duration=duration)
+                    user_time = timedelta(seconds=history.duration.total_seconds())
+                    print(user_time)
+                else:
+                    print("Not enough time!!")
+            # check what to remove
             await client.delete_channel(channel_id=query.voice_channel_id)
             # Delete the session
             await query.delete()
             ses["active_session_payload"] = None
-            # need to remove the invite link too
+            # need to remove the invite link too and maybe the message as-well
             return await render_template("index.html", guild_users=ses["guild_users"])
         if "check_user" in request.headers["X-Custom-Header"]:
-            check_user_id = await request.get_json()
-            check_user_id = check_user_id["user_id"]
+            check_user = await request.get_json()
+            check_user_id = check_user["user_id"]
             active_sessions = ses["active_session_payload"]
             active_dm_session = active_sessions[check_user_id]
-            user_reaction = await client.check_reaction(active_dm_session)
-            if user_reaction[0]["id"] == check_user_id:
-                
+            active_user = await client.check_reaction(active_dm_session)
+            if active_user[0]["id"] in active_sessions:
+                active_users = ses["active_session_users"]
+                if active_user[0]["id"] not in active_users:
+                    active_users.append(active_user[0]["id"])
+                    ses["active_session_users"] = active_users
                 return "Joined"
             else:
                 return "Invited"
-
         return "hello"
-
 
     else:
         guild_id = ses["user_guild_id"]
@@ -118,10 +138,12 @@ async def homepage():
                 "user_id": user["user"]["id"],
                 "username": user["user"]["username"],
                 "avatar": user["user"]["avatar"]
-            } for user in response]
+            } for user in response if user["user"]["id"] != str(ses["user_id"]) and "bot" not in user["user"]]
             ses["guild_users"] = guild_users
-        if await StudySession.filter(manager=ses["user_id"]).all():
+        # shows the page for the manager: need to work on var naming for manager and participant
+        if await StudySession.filter(manager=ses["user_id"]).exists():
             study_session = await StudySession.filter(manager=ses["user_id"]).first()
+            # users info that are in the current session, misleading name
             user_info = await Participant.filter(discord_id=ses["user_id"]).first()
             # View the page as a ses manager
             return await render_template("index.html", session_manager=study_session, user_info=user_info)
@@ -159,6 +181,7 @@ async def guild():
             bot_guilds = await discord.bot_request("/users/@me/guilds", method="GET")
             bot_guilds_name = [str(name["name"]) for name in bot_guilds]
             ses["user_guilds_list"], ses["bot_guilds_list"] = user_guilds, bot_guilds_name
+            # change naming "common guilds"
         return await render_template("guild.html",
                                      guilds=ses["user_guilds_list"],
                                      common_guilds=ses["bot_guilds_list"])
