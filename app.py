@@ -100,7 +100,8 @@ async def homepage():
             for participant in participants:
                 duration = current_time - participant.start
                 if duration.total_seconds() >= 300:
-                    history = await History.create(session_name=query.name, desc=query.desc, user_id=participant.discord_id,
+                    history = await History.create(session_name=query.name, desc=query.desc
+                    if query.desc is None else "No Description", user_id=participant.discord_id,
                                                    duration=duration)
                     user_time = timedelta(seconds=history.duration.total_seconds())
                     print(user_time)
@@ -143,10 +144,18 @@ async def homepage():
         # shows the page for the manager: need to work on var naming for manager and participant
         if await StudySession.filter(manager=ses["user_id"]).exists():
             study_session = await StudySession.filter(manager=ses["user_id"]).first()
-            # users info that are in the current session, misleading name
-            user_info = await Participant.filter(discord_id=ses["user_id"]).first()
-            # View the page as a ses manager
-            return await render_template("index.html", session_manager=study_session, user_info=user_info)
+            partic = await Participant.filter(discord_id=ses["user_id"]).first()
+            duration = datetime.now(pytz.utc) - partic.start
+            duration = str(duration).split(".")[0]
+            # users info that are in the current session, misleading name            # View the page as a ses manager
+            return await render_template("index.html", session_manager=study_session, session_partic=partic,
+                                         duration=duration)
+        elif await Participant.filter(discord_id=ses["user_id"]).exists():
+            print("participant")
+            partic = await Participant.filter(discord_id=ses["user_id"]).first()
+            duration = datetime.now(pytz.utc) - partic.start
+            duration = str(duration).split(".")[0]
+            return await render_template("index.html", session_partic=partic, duration=duration)
         return await render_template("index.html", guild_users=ses["guild_users"])
 
 
