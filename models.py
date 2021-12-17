@@ -7,9 +7,9 @@ class StudySession(Model):
     name = fields.CharField(25)
     desc = fields.CharField(250)
     manager = fields.BigIntField()
+    manager_username = fields.CharField(40)
     guild = fields.BigIntField()
     voice_channel_id = fields.BigIntField()
-    # duration = fields.TimeDeltaField()
 
 
 class Participant(Model):

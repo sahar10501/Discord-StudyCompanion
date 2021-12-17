@@ -1,16 +1,7 @@
-
 let theDiv = document.getElementById('invite_list');
 let content = document.createElement('div');
 content.className = 'row justify-content-center pb-4 pt-3 border-bottom'
 let users = []
-
-
-let current_time = document.getElementById('current_time')
-const today = new Date();
-const m = new Date();
-let minutes = String(m.getMinutes()).padStart(2, '0');
-const time = today.getHours() + ":" + minutes + ":" + today.getSeconds();
-current_time.innerHTML = time
 
 // populates the row with all of the assigned users
 function show_users() {
@@ -115,6 +106,7 @@ session_control.addEventListener('click', function(){
   .then(function(response){
     if(response.status == 200){
       window.location.href = '/'
+      console.log("hello");
   }
     
   })
