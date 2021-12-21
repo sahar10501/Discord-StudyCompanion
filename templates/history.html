@@ -18,21 +18,21 @@
                  </tr>
                </thead>
                <tbody>
-                  {% for key, item in user_history.items() %}
+                  {% for key, item in user_history.items()|reverse %}
                  <tr>
                    <th scope="row">{{ loop.index }}</th>
                    <td>{{item["name"]}}</td>
                    <td>{{item["duration"]}}</td>
                    <td style="align-items: center; text-align: center;">
-                     <button class="btn btn-primary" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasBottom" aria-controls="offcanvasBottom">Show Description</button>
+                     <button class="btn btn-primary" type="button" data-bs-toggle="offcanvas"  data-bs-target="#offcanvasBottom{{ loop.index }}" aria-controls="offcanvasBottom">Show Description</button>
 
-                     <div style="background-color: gray;" class="offcanvas offcanvas-bottom" tabindex="-1" id="offcanvasBottom" aria-labelledby="offcanvasBottomLabel">
+                     <div style="background-color: gray;" class="offcanvas offcanvas-bottom" data-bs-scroll="true" tabindex="-1" id="offcanvasBottom{{ loop.index }}" aria-labelledby="offcanvasBottomLabel">
                        <div class="offcanvas-header">
                          <h3 class="offcanvas-title" id="offcanvasBottomLabel">Session Description: </h3>
                          <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
                        </div>
                        <div style="background-color: gray;" class="offcanvas-body small">
-                           {{ item["desc"] }}
+                        {{ item["desc"] }}
                        </div>
                      </div>
                    </td>

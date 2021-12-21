@@ -10,7 +10,7 @@
     </head>
 
     <body>
-        <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <nav style="padding-top: 0; padding-bottom: 0; padding: 0.2rem;" class="navbar navbar-expand-lg navbar-dark bg-dark">
             <div class="container-fluid">
               <a class="navbar-brand" href="/">Discord-StudyCompanion</a>
               <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
@@ -27,13 +27,16 @@
   
                 </ul>
                 <li class="nav-item dropdown">
-                  <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                      {{ user_payload.username }}
-                    
+                  <a style="display:inline; padding: 0.2rem;" class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <img class='img-responsive rounded-circle' alt='User Image' width='25' height='25' src="{% if user_payload.avatar != none %} https://cdn.discordapp.com/avatars/{{ user_payload.user_id }}/{{ user_payload.avatar }}.webp?size=1024 {% else %} https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_640.png {% endif %}"> 
+                      <span style="color:gray;">{{ user_payload.username }}</span>
                   </a>
-                  <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
-                    <li><a class="dropdown-item" href="/history">History</a></li>
+                  <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end" aria-labelledby="navbarDropdown">
+                    <li><a class="dropdown-item" href="#">Notifications</a></li>
                     <li><a class="dropdown-item" href="#">Stats</a></li>
+                    <li><a class="dropdown-item" href="#">Preference</a></li>
+
+
                     <li><hr class="dropdown-divider"></li>
                     <li>
                       <a class="dropdown-item" href="/logout">Logout</a>

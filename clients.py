@@ -35,7 +35,8 @@ class AsyncHttpRequest:
             self.session = ClientSession()
         async with self.session.get(url=f"{self.base_url}/guilds/{guild_id}/members", headers=self.headers,
                                     params={"limit": 1000}) as response:
-            return await response.json()
+            response = await response.json()
+            return response
 
     async def send_inv_dm(self, chat_id, invite):
         """ The invite msg the invited user is receiving """

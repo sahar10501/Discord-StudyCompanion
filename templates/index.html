@@ -17,23 +17,20 @@
                     <div class='row'>
                       <div class='col-9'><h5 class='card-title'>{{ item['username'] | safe }}</h5></div>
                       <div class='col-3'>
-                        {% if item['avatar'] is not none %}
-                        <img id="{{ loop.index }}" src="https://cdn.discordapp.com/avatars/{{ key | safe }}/{{ item['avatar'] | safe }}.webp?size=1024"
+                        <img id="{{ loop.index }}" src="{% if item['avatar'] is not none %} https://cdn.discordapp.com/avatars/{{ key | safe }}/{{ item['avatar'] | safe }}.webp?size=1024 {% else %} https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_640.png {% endif %}"
                         class='img-responsive rounded-circle' alt='User Image' width='40' height='40'>
-                        {% endif %}
                       </div>
                     </div>
                   </div>
                     <p class='card-text'></p>
                     <div class='card-footer text-muted' >
                       <div class='row'>
-                        <div class='col-3'>
+                        <div class='col-4'>
                           <button type='button' aria-pressed="true" data-bs-toggle="button"  class='user_buttons btn btn-primary active' style='background-color: #4e62f0;' 
                           value="{{ item['username'] }}" data-avatar_id="{{ item['avatar'] }}" data-user_id="{{ key }}">Invite</button>
                         </div>
-                        <div class='col-3'><div style='margin-top: 5px; text-decoration: underline;'>Status</div></div>
-                      </div>
                   </div>
+                </div>
                 </div>
              </li>
             {% endfor %}
@@ -85,13 +82,43 @@
         {% if session_manager is not defined and not participant %}
         <button type='button' class='d-grid btn btn-primary btn-lg col-6 mx-auto' 
         data-bs-toggle="modal" data-bs-target="#invite_modal" id="open_inv_modal">Invite</button>
+        {% elif manager == true %}
+        <button class="btn btn-primary d-grid btn-lg col-6 mx-auto" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasRight" aria-controls="offcanvasRight">Invitation List</button>
+        <div style="backdrop-filter: blur(8px); 
+        box-shadow: 0px 10px 15px 10px rgb(0 0 0 / 15%);
+        background-color: rgb(228 228 228 / 15%);" class="offcanvas offcanvas-bottom" tabindex="-1" id="offcanvasRight" aria-labelledby="offcanvasRightLabel">
+          <div style="opacity:0.3;" class="offcanvas-header">
+            <h5 style="color: white;" id="offcanvasRightLabel"> Invited List</h5>
+            <button type="button" class="btn-close text-reset " data-bs-dismiss="offcanvas" aria-label="Close"></button>
+          </div>
+          <div class="offcanvas-body">
+            <table style="color: white;" class="table table-hover">
+              <tbody>
+                {% for key, item in session_partic_byname.items() %}
+                <tr>
+                  <td>
+                    
+                    <img class='img-responsive rounded-circle' alt='User Image' width='25' height='25' src="{% if item['avatar'] != none %} https://cdn.discordapp.com/avatars/{{key}}/{{item['avatar']}}.webp?size=1024 {% else %} https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_640.png {% endif %}">
+                    {{ item["username"] }} 
+                  </td>
+                  <td id="msg{{ loop.index0 }}">{% if key in active_users_partic %} Joined {% else %} Invited {% endif %}</td>
+                  <td><button type="button" value="{{ key }}" data-avatar_id="{{ item['avatar'] }}" data-username="{{ item['username'] }}"  class="session_invite btn btn-sm btn-dark {% if key in active_users_partic %} disabled {% endif %}">Check</button>
+                  </td>
+                </tr>
+                <script type="text/javascript" src="/static/home-script-session-check.js"></script>
+                {% endfor %}
+              </tbody>
+            </table>
+            
+          </div>
+        </div>
         {% endif %}
       </div>
       <div class='col-lg-5'>
         {% if participant %}
         <button type='button' id='session_control' value="leave" class='d-grid btn btn-primary btn-lg col-6 mx-auto'>Leave</button>
         {% elif session_manager is not defined %}
-        <button type='button' id="open_start_modal" value="start" class='d-grid btn btn-primary btn-lg col-6 mx-auto' 
+        <button type='button' id="open_start_modal" value="start" class='d-grid btn btn-primary btn-lg col-6 mx-auto disabled' 
         data-bs-toggle="modal" data-bs-target="#start_modal">Start</button>
         {% else %}
         <button type='button' id='session_control' value="stop" class='d-grid btn btn-primary btn-lg col-6 mx-auto'>Stop</button>
@@ -147,7 +174,6 @@
               </tr>
             </thead>
             <tbody id="inv_user_tbl">
-              
             </tbody>
           </table>
         </div>
@@ -163,5 +189,8 @@
 
 </div>
 <script type="text/javascript" src="/static/home-script.js"></script>
+{% if manager == true %}
+
+{% endif %}
 
 {% endblock %}
