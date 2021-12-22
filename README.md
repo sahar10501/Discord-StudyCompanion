@@ -47,7 +47,7 @@ voluptas sit aspernatur aut odit aut fugit, sed quia
 - [ ] Implement a request queue for the dynamic rate-limiting of Discord API
 - [ ] Redo the UI
     - [ ] Slowly replace bootstrap with vanilla css in order understand CSS deeper
-    - [ ] Eventually move to js framework (probably react) 
+    - [ ] Eventually move to a js framework (probably react) 
 - [ ] Showcase the app
     - [ ] Record a short video
     - [ ] UI screenshots
