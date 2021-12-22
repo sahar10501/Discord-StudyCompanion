@@ -38,7 +38,7 @@ voluptas sit aspernatur aut odit aut fugit, sed quia
 
 <!-- USAGE EXAMPLES -->
 ## Screenshots
-
+<img src="https://thumbs.gfycat.com/SecondaryUniformElephantseal-size_restricted.gif" width="32%">
 
 <!-- ROADMAP -->
 ## Roadmap
