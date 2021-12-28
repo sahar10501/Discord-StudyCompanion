@@ -3,7 +3,7 @@
 
 <script>
     function send_guild_name(name){
-    let package = {'guild_name': name}
+    let package = {'guild_id': name}
     console.log(name);
     fetch('/guild', {
         method: "POST",
@@ -22,23 +22,24 @@
 <div class="container p-sm-5">
  
 <div class="row px-sm-5">
-    {% for guild in guilds %}
+    {% for key, value in user_guilds.items() %}
   <div class="col-sm-6 p-sm-2">
     <div class="card" style="background-color: #9E9E9E; border-color: grey;">
       <div class="card-body">
-        <h5 class="card-title" id="guild_name{{loop.index}}">{{ guild }}</h5>
+        <h5 class="card-title" id="guild_name{{loop.index}}">{{ value["name"] }}</h5>
         <p class="card-text">With supporting text below as a natural lead-in to additional content.
         </p>
-        {% if guild in common_guilds %}
+        {% if key in bot_guilds %}
         <button type="button" class="btn btn-primary" style="background-color: #4e62f0;" 
-        onclick="send_guild_name(this.value)" value="{{ guild }}">Join Guild!</button>
-        {% else %} <a class="btn btn-primary disabled" aria-disabled="true"
+        onclick="send_guild_name(this.value)" value="{{ key }}">Join Guild!</button>
+        {% else %}
+       <a class="btn btn-primary disabled" aria-disabled="true"
          role="button" data-bs-toggle="button">Not supported ;(</a>
-        {% endif %} 
+       {% endif %}
       </div>
     </div>
   </div>
-
+  
     {% endfor %}
 
 {% endblock %}

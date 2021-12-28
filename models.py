@@ -10,16 +10,18 @@ class StudySession(Model):
     manager_username = fields.CharField(40)
     guild = fields.BigIntField()
     voice_channel_id = fields.BigIntField()
+    start = fields.DatetimeField(auto_now_add=True)
 
 
 class Participant(Model):
     id = fields.IntField(pk=True)
+    active = fields.BooleanField()
     session: fields.ForeignKeyRelation[StudySession] = fields.ForeignKeyField("models.StudySession",
                                                                               related_name="session_id",
                                                                               to_field="id")
-    discord_id = fields.BigIntField(unique=True)
-    start = fields.DatetimeField(auto_now_add=True)
-    end = fields.DatetimeField(auto_now=True)
+    discord_id = fields.BigIntField()
+    invited = fields.DatetimeField(auto_now_add=True)
+    joined = fields.DatetimeField(null=True)
 
 
 class History(Model):

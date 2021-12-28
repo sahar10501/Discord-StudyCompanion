@@ -5,7 +5,6 @@ import asyncio
 from aiohttp.client import ClientSession
 from dotenv.main import load_dotenv
 
-
 class AsyncHttpRequest:
     """ All HTTP methods """
     def __init__(self):
@@ -38,11 +37,16 @@ class AsyncHttpRequest:
             response = await response.json()
             return response
 
+    async def get_bot_guilds(self):
+        if self.session is None:
+            self.session = ClientSession()
+        async with self.session.get(url=f"{self.base_url}/users/@me/guilds", headers=self.headers) as response:
+            return await response.json()
+
     async def send_inv_dm(self, chat_id, invite):
         """ The invite msg the invited user is receiving """
         if self.session is None:
             self.session = ClientSession()
-
         message = f"\n 📬 Hello! 📬\n Your Friend is inviting you to study !\n Click the green book to accept! \n{invite}"
         async with self.session.post(url=f"{self.base_url}/channels/{chat_id}/messages", json={"content": message},
                                      headers=self.headers) as temp_response:
@@ -100,6 +104,22 @@ class AsyncHttpRequest:
         async with self.session.get(
                 url=f"{self.base_url}/channels/{active_dm_session[0]}/messages/{active_dm_session[1]}/reactions/"
                     f"{self.book_emoji}", headers=self.headers) as response:
+            return await response.json()
+
+    async def get_user_info(self, token):
+        if self.session is None:
+            self.session = ClientSession()
+        auth = {"Authorization": f'Bearer {token["access_token"]}'}
+        async with self.session.get(
+                url=f"{self.base_url}/users/@me", headers=auth) as response:
+            return await response.json()
+
+    async def get_user_guilds(self, token):
+        if self.session is None:
+            self.session = ClientSession()
+        auth = {"Authorization": f'Bearer {token["access_token"]}'}
+        async with self.session.get(
+                url=f"{self.base_url}/users/@me/guilds", headers=auth) as response:
             return await response.json()
 
 

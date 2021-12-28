@@ -8,7 +8,7 @@ def login_required(f):
     """
     @wraps(f)
     async def decorated_function(*args, **kwargs):
-        if session.get("user_guild_id") is None:
+        if session.get("USER_GUILD") is None:
             return redirect("/guild")
         return await f(*args, **kwargs)
     return decorated_function

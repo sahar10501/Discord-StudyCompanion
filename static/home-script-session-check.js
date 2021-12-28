@@ -18,26 +18,22 @@ check_user_button.forEach((element, index) => {
         .then(function(data){
             if (data == 'Joined'){
                 let msg = document.getElementById('msg'+index)
-                let content = document.createElement('div');
-                let avatar_hash = element.getAttribute('data-avatar_id')
-                let username = element.getAttribute('data-username')
-                content.className = 'row justify-content-center pb-4 pt-3 border-bottom'
-                content.innerHTML += `<div style='text-align: center;' class='col-xs-6 col-sm-3'>
-                <img src='https://cdn.discordapp.com/avatars/${element.value}/${avatar_hash}.webp?size=1024'
-                onerror="this.onerror=null;this.src='https://upload.wikimedia.org/wikipedia/commons/thumb/1/1f/Blank_square.svg/2048px-Blank_square.svg.png';"
-                class='img-responsive rounded-circle' alt='User Image' width='125' height='125'>
-                <h4 style='color: Gray; margin-top: 1rem;'>${username}</h4>
-                <span class='text-muted'>Joined</span>
-                </div>`
-                div_users.appendChild(content)
-                msg.innerHTML = "Joined"
+                let status = document.getElementById('status'+index)
+                status.innerText = 'Joined'
                 element.classList.add('disabled')
-            
+                theDiv.style.marginTop = null;
+                msg.innerHTML = "Joined"
+
             }
-            
+            else {
+                let spanTag = document.createElement('SPAN');
+                spanTag.setAttribute('id', 'loading_span')
+                spanTag.className = 'spinner-grow spinner-grow-sm'
+                element.innerHTML = 'Checking'
+                element.appendChild(spanTag)
+                element.classList.add('disabled')
+                setTimeout(() => {element.classList.remove('disabled'); element.removeChild(spanTag); element.innerText = 'Check Status'}, 4000)
+            }
         })
-        
     })
 });
-
-

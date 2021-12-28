@@ -59,21 +59,23 @@ def after_request(response):
 async def homepage():
     if request.method == "POST":
         # Checks if the user is already a manager of a session
-        if not await StudySession.filter(manager=ses["user_id"]).exists() \
-                or not await Participant.filter(discord_id=ses["user_id"]).exists():
+        if not await StudySession.filter(manager=ses["USER_PAYLOAD"]["user_id"]).exists() \
+                or not await Participant.filter(discord_id=ses["USER_PAYLOAD"]["user_id"], active=True).exists():
             if "invite_list" in request.headers["X-Custom-Header"]:
                 payload = await request.get_json()
                 users_id = payload["users_id"]
-                if 1 <= len(users_id) <= 3:
+                if 1 <= len(users_id) <= 4:
                     guild_id = ses["user_guild_id"]
-                    user_id = ses["user_id"]
-                    user_info = ses["user_payload"]
+                    user_id = ses["USER_PAYLOAD"]["user_id"]
+                    user_info = ses["USER_PAYLOAD"]
                     user_info_username = user_info["username"]
                     channel_name = payload["topic"]
                     desc = payload["desc"]
-
                     dm_channels = await client.init_multiple_dm_channels(users_id)
                     dm_channel_id = [dm_channel["id"] for dm_channel in dm_channels]
+                    # make it option for the user to select if he wishes to create a discord voice channel
+                    # when creating the study session, maybe make an option to create a text channel and then
+                    # log the channel
                     voice_channel = await client.create_voice_channel(guild_id=guild_id,
                                                                       channel_name=channel_name,
                                                                       users_limit=len(users_id))
@@ -93,24 +95,31 @@ async def homepage():
                                                               manager_username=user_info_username,
                                                               voice_channel_id=voice_channel_id,
                                                               desc=desc if len(desc) > 0 else "No Description")
-                    await Participant.create(session_id=study_session.id, discord_id=ses["user_id"])
+                    for user_id in users_id:
+                        await Participant.create(session_id=study_session.id, discord_id=user_id, active=False)
+                    # add an option for the session host to start his time count only when everyone joins
                 else:
                     return "Wrong user number"
 
         if "stop_session" in request.headers["X-Custom-Header"]:
-            if StudySession.filter(manager=ses["user_id"]):
-                query = await StudySession.filter(manager=ses["user_id"]).first()
-                participants = await Participant.filter(session=query.id).all()
+            if StudySession.filter(manager=ses["USER_PAYLOAD"]["user_id"]):
+                query = await StudySession.filter(manager=ses["USER_PAYLOAD"]["user_id"]).first()
+                participants = await Participant.filter(session=query.id, active=True).all()
+                # delete all the inactive invited users!!
                 current_time = datetime.now(pytz.utc)
                 for participant in participants:
-                    duration = current_time - participant.start
+                    duration = current_time - participant.joined
                     # Change later to 300
                     if duration.total_seconds() >= 5:
                         await History.create(session_name=query.name,
                                              desc=query.desc,
                                              user_id=participant.discord_id,
                                              duration=duration)
-                        # user_time = timedelta(seconds=history.duration.total_seconds())
+                await History.create(session_name=query.name,
+                                     desc=query.desc,
+                                     user_id=query.manager,
+                                     duration=current_time - query.start)
+                # user_time = timedelta(seconds=history.duration.total_seconds())
 
                 await client.delete_channel(channel_id=query.voice_channel_id)
                 await query.delete()
@@ -119,11 +128,10 @@ async def homepage():
                 return redirect("/")
 
         if "leave_session" in request.headers["X-Custom-Header"]:
-            user_id = ses["user_id"]
-            user_session = await Participant.filter(discord_id=user_id).first()
+            user_session = await Participant.filter(discord_id=ses["USER_PAYLOAD"]["user_id"]).first()
             session_info = await StudySession.filter(id=user_session.session_id).first()
             current_time = datetime.now(pytz.utc)
-            duration = current_time - user_session.start
+            duration = current_time - user_session.joined
             await History.create(session_name=session_info.name,
                                  desc=session_info.desc if session_info.desc is not None else "No Description",
                                  user_id=user_session.discord_id,
@@ -132,101 +140,105 @@ async def homepage():
             return redirect("/")
 
         if "check_user" in request.headers["X-Custom-Header"]:
-            if StudySession.filter(manager=ses["user_id"]).exists:
+            if StudySession.filter(manager=ses["USER_PAYLOAD"]["user_id"]).exists:
                 # later store the active session somewhere else, maybe a cookie
-                query = await StudySession.filter(manager=ses["user_id"]).first()
+                query = await StudySession.filter(manager=ses["USER_PAYLOAD"]["user_id"]).first()
                 check_user = await request.get_json()
                 check_user_id = check_user["user_id"]
-                active_sessions = ses["active_session_payload"]
-                active_dm_session = active_sessions[check_user_id]
-                active_session_users = ses["active_session_users"]
-
-                active_user = await client.check_reaction(active_dm_session)
-                if active_user[0]["id"] in active_sessions not in active_session_users:
-                    test = await Participant.create(session_id=query.id, discord_id=active_user[0]["id"])
-                    active_session_users.append(active_user[0]["id"])
-                    ses["active_session_users"] = active_session_users
-                    return "Joined"
+                if not await Participant.filter(discord_id=check_user_id, active=True).exists() \
+                        and not await StudySession.filter(manager=check_user_id).exists():
+                    active_sessions = ses["active_session_payload"]
+                    active_dm_session = active_sessions[check_user_id]
+                    active_session_users = ses["active_session_users"]
+                    active_user = await client.check_reaction(active_dm_session)
+                    if active_user[0]["id"] in active_sessions not in active_session_users:
+                        await Participant.filter(discord_id=active_user[0]["id"], session_id=query.id).update(
+                            active=True, joined=datetime.now(pytz.utc))
+                        active_session_users.append(active_user[0]["id"])
+                        ses["active_session_users"] = active_session_users
+                        return "Joined"
+                    else:
+                        return "Invited"
                 else:
-                    return "Invited"
+                    "User already in a session"
             else:
                 "You are not a session manager"
         return "hello"
 
     else:
-        guild_id = ses["user_guild_id"]
-        user_payload = ses["user_payload"]
+        user_guild_payload = ses["USER_GUILD"]
+        user_payload = ses["USER_PAYLOAD"]
         if ses.get("guild_users") is None:
-            # saving all the users in the chosen guild
-            response = await client.get_guild_members(guild_id)
+            # saving all the users in the chosen guild, give the user an option to refresh his list
+            response = await client.get_guild_members(user_guild_payload[0])
             guild_users = {
                 user["user"]["id"]: {
                     "username": user["user"]["username"],
                     "avatar": user["user"]["avatar"]}
-                for user in response if user["user"]["id"] != str(ses["user_id"]) and "bot" not in user["user"]}
-            ses["guild_users"] = guild_users
+                for user in response if
+                user["user"]["id"] != str(ses["USER_PAYLOAD"]["user_id"]) and "bot" not in user["user"]}
+            ses["GUILD_USERS"] = guild_users
 
-        # manager view: need to work on var naming for manager and participant
-        if await StudySession.filter(manager=ses["user_id"]).exists():
+        # manager view
+        if await StudySession.filter(manager=ses["USER_PAYLOAD"]["user_id"]).exists():
             # need to reorder
             session_manager = True
-            session_info = await StudySession.filter(manager=ses["user_id"]).first()
-            user_session = await Participant.filter(discord_id=ses["user_id"]).first()
-            guild_users = ses["guild_users"]
-            active_session_users = await Participant.exclude(discord_id=ses["user_id"]).filter(session_id=user_session.session_id).all()
-            # a list of the users id that are participating in the session without the user it self
+            session_info = await StudySession.filter(manager=ses["USER_PAYLOAD"]["user_id"]).first()
+            guild_users = ses["GUILD_USERS"]
+            active_session_users = await Participant. \
+                exclude(discord_id=ses["USER_PAYLOAD"]["user_id"]). \
+                filter(session_id=session_info.id).all()
             active_users_id = [str(active_user.discord_id) for active_user in active_session_users]
             active_users_payload = {user: guild_users[user] for user in active_users_id if user in guild_users}
-            active_ses = ses["active_session_payload"]
-            users_id = [active for active in active_ses]
-            users_info = {user: guild_users[user] for user in users_id}
-            user_payload = ses["user_payload"]
-            duration = datetime.now(pytz.utc) - user_session.start
-            duration = str(duration).split(".")[0]
+            for user in active_session_users:
+                if str(user.discord_id) in active_users_payload:
+                    active_users_payload[str(user.discord_id)]["active"] = user.active
+            # a list of the users id that are participating in the session
+            # for user in actives_payload
+            user_payload = ses["USER_PAYLOAD"]
             # check the vars again, and maybe better name them
-            #print(f"this is session_partic {user_session}\n this is session_partic by name {users_info}\n"
-                  #f" this is active_user partic {active_users_payload}")
+            # print(f"this is session_partic {user_session}\n this is session_partic by name {users_info}\n"
+            # f" this is active_user partic {active_users_payload}")
             return await render_template("index.html", session_info=session_info,
-                                         session_partic=user_session,
-                                         session_partic_byname=users_info,
+                                         session_participants=active_session_users,
                                          active_users_partic=active_users_payload,
                                          session_manager=session_manager,
-                                         duration=duration,
+                                         duration=session_info.start,
                                          manager=True,
                                          user_payload=user_payload)
 
         # participant view
-        elif await Participant.filter(discord_id=ses["user_id"]).exists():
-            user_session = await Participant.filter(discord_id=ses["user_id"]).first()
+        elif await Participant.filter(discord_id=ses["USER_PAYLOAD"]["user_id"], active=True).exists():
+            user_session = await Participant.filter(discord_id=ses["USER_PAYLOAD"]["user_id"], active=True).first()
             session_info = await StudySession.filter(id=user_session.session_id).first()
-            # make sure that the stored guild users in the cookie is matching to the guild in the ses
-            # he's joining
+            # comparing the key[user_guild_id] of the stored users dict to the current active session
+            # in order to refresh the list of users stored in browser
             if session_info.guild != ses["user_guild_id"]:
                 response = await client.get_guild_members(session_info.guild)
-                # refactor into a function
+                # refactor into a function (repeating twice)
                 guild_users = {
                     user["user"]["id"]: {
                         "username": user["user"]["username"],
                         "avatar": user["user"]["avatar"]}
-                    for user in response if user["user"]["id"] != str(ses["user_id"])
+                    for user in response if user["user"]["id"] != str(ses["USER_PAYLOAD"]["user_id"])
                                             and "bot" not in user["user"]}
-                ses["guild_users"] = guild_users
-            user_payload = ses["user_payload"]
-            guild_users = ses["guild_users"]
-            session_users = await Participant.exclude(discord_id=ses["user_id"]).filter(session_id=user_session.session_id).all()
+                ses["GUILD_USERS"] = guild_users
+            user_payload = ses["USER_PAYLOAD"]
+            guild_users = ses["GUILD_USERS"]
+            session_users = await Participant.exclude(discord_id=ses["USER_PAYLOAD"]["user_id"]).filter(
+                session_id=user_session.session_id).all()
             active_users_id = [str(active_user.discord_id) for active_user in session_users]
             active_users_payload = {user: guild_users[user] for user in active_users_id if user in guild_users}
-            duration = datetime.now(pytz.utc) - user_session.start
-            formatted_dur = str(duration).split(".")[0]
             return await render_template("index.html",
                                          session_partic=user_session,
-                                         duration=formatted_dur,
+                                         duration=user_session.joined.isoformat(),
                                          active_users_partic=active_users_payload,
                                          participant=True,
                                          user_payload=user_payload,
                                          session_info=session_info)
+
         return await render_template("index.html",
-                                     guild_users=ses["guild_users"],
+                                     guild_users=ses["GUILD_USERS"],
                                      user_payload=user_payload)
 
 
@@ -241,60 +253,52 @@ async def login():
 
 @QUART_APP.route("/history/")
 async def history():
-    query = await History.filter(user_id=ses["user_id"]).all()
+    query = await History.filter(user_id=ses["USER_PAYLOAD"]["user_id"]).all()
     user_history = {query.index(study_session): {"name": study_session.session_name,
                                                  "duration": str(study_session.duration).split(".")[0],
                                                  "desc": study_session.desc} for study_session in query}
-    return await render_template("history.html", user_payload=ses["user_payload"],
+    return await render_template("history.html", user_payload=ses["USER_PAYLOAD"],
                                  user_history=user_history)
 
 
 @QUART_APP.route("/guild/", methods=["POST", "GET"])
 async def guild():
     if request.method == "POST":
-        if "guild_name" in await request.get_json(force=True):
-            guild_name = await request.get_json(force=True)
-            # I already got a list of guilds and stores it in session, better to use it again.
-            # I can get the id from list of dicts much eaiser than what I did here. # (check example down "test")
-            bot_guilds = await discord.bot_request("/users/@me/guilds", method="GET")
-            #print(bot_guilds)
-            test = [item["id"] for item in bot_guilds if item["name"] == guild_name] # do this instead
-            #print(test)
-            bot_guilds_info = [{"guild_name": bot_guild["name"], "id": bot_guild["id"]} for bot_guild in bot_guilds]
-            #print(bot_guilds_info)
-            user_guild_id = next(item for item in bot_guilds_info if item["guild_name"] == guild_name["guild_name"])
-            #print(user_guild_id)
-            ses["user_guild_id"] = user_guild_id["id"]
-            ses["guild_users"] = None
+        if "guild_id" in await request.get_json(force=True):
+            user_guild_id = await request.get_json(force=True)
+            guild_payload = ses["GUILD_PAYLOAD"]
+            if user_guild_id["guild_id"] in list(guild_payload["user"]):
+                ses["USER_GUILD"] = [user_guild_id["guild_id"],
+                                     guild_payload["user"][user_guild_id["guild_id"]]["name"],
+                                     guild_payload["user"][user_guild_id["guild_id"]]["icon"]]
+            ses["GUILD_USERS"] = None
 
-        return redirect("/")
+        return redirect("/guild")
     else:
-        if ses.get("user_guilds_list") is None:
-            user = await discord.fetch_user()
-            ses["user_id"] = user.id
-            ses["user_payload"] = {
-                "user_id": user.id,
-                "avatar": user.avatar_hash,
-                "username": user.username
+        if ses.get("GUILD_PAYLOAD") is None:
+            # make an option for the client to refresh his guild list
+            token = await discord.get_authorization_token()
+            user = await client.get_user_info(token)
+            user_guilds_response = await client.get_user_guilds(token)
+            bot_guilds_response = await client.get_bot_guilds()
+            ses["USER_PAYLOAD"] = {
+                "user_id": user["id"],
+                "avatar": user["avatar"],
+                "username": user["username"]
             }
-            user_guilds = await discord.fetch_guilds()
-            #print(user_guilds[0].id)
-            user_guilds = [str(name) for name in user_guilds]
-            bot_guilds = await discord.bot_request("/users/@me/guilds", method="GET")
-            # change it, get rid of repeating var name..
-            bot_guilds_name = [str(name["name"]) for name in bot_guilds]
-            ses["user_guilds_list"], ses["bot_guilds_list"] = user_guilds, bot_guilds_name
-            #print("------")
-            #print(ses["user_guilds_list"], ses["bot_guilds_list"])
-            #print("------")
-            # change naming "common guilds" to supported guilds
-            # move everything to a dict with two keys, "supported guilds" & user_guilds
-            # values will be: dicts with keys of the guild id and their value will be, avatar and name
-            # currently it compares by name to check which guilds are supported.. this is wrong
-            # need to switch to my client to fetch this info
+            ses["GUILD_PAYLOAD"] = {"user": {
+                user_guild["id"]: {
+                    "name": user_guild["name"],
+                    "icon": user_guild["icon"]} for user_guild in user_guilds_response},
+                "bot": {
+                    bot_guild["id"]: {
+                        "name": bot_guild["name"],
+                        "icon": bot_guild["icon"]} for bot_guild in bot_guilds_response}}
+
         return await render_template("guild.html",
-                                     guilds=ses["user_guilds_list"],
-                                     common_guilds=ses["bot_guilds_list"], user_payload=ses["user_payload"])
+                                     bot_guilds=ses["GUILD_PAYLOAD"]["bot"],
+                                     user_guilds=ses["GUILD_PAYLOAD"]["user"],
+                                     user_payload=ses["USER_PAYLOAD"])
 
 
 @QUART_APP.route("/callback/")

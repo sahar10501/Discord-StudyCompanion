@@ -2,7 +2,6 @@ let theDiv = document.getElementById('invite_list');
 let content = document.createElement('div');
 content.className = 'row justify-content-center pb-4 pt-3 border-bottom'
 let users = []
-
 // populates the row with all of the assigned users
 function show_users() {
   content.innerText = ""
@@ -15,10 +14,11 @@ function show_users() {
   <span class='text-muted'>Invited</span>
 </div>`
     theDiv.appendChild(content);
+    theDiv.style.marginTop = null;
   });
 }
 
-let buttons = document.querySelectorAll('.user_buttons.btn.btn-primary')
+let buttons = document.querySelectorAll('.user_buttons.btn')
 // Listens to button click, assign and remove users from invite list
 buttons.forEach(element =>  {
   element.state = 0
@@ -43,7 +43,8 @@ buttons.forEach(element =>  {
           element.state = 1
           element.style.color = 'gray'
           element.innerText = 'Remove'
-        };
+        }
+
       }
       else if (element.state == 1){
         users = users.filter(function(e) {
@@ -53,6 +54,10 @@ buttons.forEach(element =>  {
         element.innerText = 'Invite'
         element.state = 0
         show_users();
+        if (users.length == 0){ 
+          theDiv.style.marginTop = '21.5%'
+    
+      }
       };
   })
 })
@@ -84,7 +89,6 @@ invite_button.addEventListener('click', function() {
       open_start_modal.classList.remove('disabled')
   }
   })
-
   // disables all the invite buttons after inviting users
   buttons.forEach(element =>  {
     element.classList.add('disabled')
@@ -142,7 +146,6 @@ open_start_modal.addEventListener('click', function(){
       cell.innerHTML = i+1;
       let cell1 = row.insertCell()
       if (users[i]['avatar_hash'] != 'None') {
-        console.log(users[i]['user_id']);
         let img_url = 'https://cdn.discordapp.com/avatars/' + users[i]['user_id'] + '/' + users[i]['avatar_hash'] + '.webp?size=1024'
         cell1.innerHTML = '<img width="25" height="25" class="img-responsive rounded-circle" alt="User Image" src="' + img_url +  '"> ' + users[i]['name']
       }
@@ -154,10 +157,10 @@ open_start_modal.addEventListener('click', function(){
       cell2.id = 'status'+i
       cell2.innerHTML = 'Invited';
       let cell3 = row.insertCell()
-      cell3.innerHTML = "<button type='button' value='"+users[i]['user_id']+"'class='btn btn-outline-primary btn-sm'>Check Status</button>";
+      cell3.innerHTML = "<button type='button' style='background-color: #7ccfff;' value='"+users[i]['user_id']+"'class='btn btn-outline btn-sm'>Check Status</button>";
     }
   }
-  let check_button = document.querySelectorAll('.btn.btn-outline-primary.btn-sm')
+  let check_button = document.querySelectorAll('.btn.btn-outline.btn-sm')
   check_button.forEach((element, index) => {
     element.addEventListener('click', function(){
       let user_check = {'user_id': this.value}
@@ -181,19 +184,16 @@ open_start_modal.addEventListener('click', function(){
           element.innerHTML = "Checking"
           element.appendChild(spanTag)
           element.classList.add('disabled')
-          span_tag_id = document.getElementById('loading_span')
-          setTimeout(() => {element.classList.remove('disabled'); element.removeChild(span_tag_id); element.innerText = 'Check Status'}, 2000)
+          setTimeout(() => {element.classList.remove('disabled'); element.removeChild(spanTag); element.innerText = 'Check Again'}, 5000)
+
         }
         else {
           element.classList.add('disabled')
           element.innerText = "Ready!"
           let status = document.getElementById('status'+index)
           status.innerHTML = "Joined"
-          
         }
-        
       })
     })
   })
 })
-
