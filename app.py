@@ -58,14 +58,14 @@ def after_request(response):
 @login_required
 async def homepage():
     if request.method == "POST":
-        # Checks if the user is already a manager of a session
+        # Checks if the user is already a manager of a session or an active participant
         if not await StudySession.filter(manager=ses["USER_PAYLOAD"]["user_id"]).exists() \
                 or not await Participant.filter(discord_id=ses["USER_PAYLOAD"]["user_id"], active=True).exists():
             if "invite_list" in request.headers["X-Custom-Header"]:
                 payload = await request.get_json()
                 users_id = payload["users_id"]
                 if 1 <= len(users_id) <= 4:
-                    guild_id = ses["user_guild_id"]
+                    guild_id = ses["USER_GUILD"][0]
                     user_id = ses["USER_PAYLOAD"]["user_id"]
                     user_info = ses["USER_PAYLOAD"]
                     user_info_username = user_info["username"]
@@ -111,13 +111,9 @@ async def homepage():
                     duration = current_time - participant.joined
                     # Change later to 300
                     if duration.total_seconds() >= 5:
-                        await History.create(session_name=query.name,
-                                             desc=query.desc,
-                                             user_id=participant.discord_id,
+                        await History.create(session_name=query.name, desc=query.desc, user_id=participant.discord_id,
                                              duration=duration)
-                await History.create(session_name=query.name,
-                                     desc=query.desc,
-                                     user_id=query.manager,
+                await History.create(session_name=query.name, desc=query.desc, user_id=query.manager,
                                      duration=current_time - query.start)
                 # user_time = timedelta(seconds=history.duration.total_seconds())
 
@@ -141,7 +137,6 @@ async def homepage():
 
         if "check_user" in request.headers["X-Custom-Header"]:
             if StudySession.filter(manager=ses["USER_PAYLOAD"]["user_id"]).exists:
-                # later store the active session somewhere else, maybe a cookie
                 query = await StudySession.filter(manager=ses["USER_PAYLOAD"]["user_id"]).first()
                 check_user = await request.get_json()
                 check_user_id = check_user["user_id"]
@@ -152,8 +147,8 @@ async def homepage():
                     active_session_users = ses["active_session_users"]
                     active_user = await client.check_reaction(active_dm_session)
                     if active_user[0]["id"] in active_sessions not in active_session_users:
-                        await Participant.filter(discord_id=active_user[0]["id"], session_id=query.id).update(
-                            active=True, joined=datetime.now(pytz.utc))
+                        await Participant.filter(discord_id=active_user[0]["id"], session_id=query.id)\
+                            .update(active=True, joined=datetime.now(pytz.utc))
                         active_session_users.append(active_user[0]["id"])
                         ses["active_session_users"] = active_session_users
                         return "Joined"
@@ -168,8 +163,8 @@ async def homepage():
     else:
         user_guild_payload = ses["USER_GUILD"]
         user_payload = ses["USER_PAYLOAD"]
-        if ses.get("guild_users") is None:
-            # saving all the users in the chosen guild, give the user an option to refresh his list
+        if ses.get("GUILD_USERS") is None:
+            # give the user an option to refresh his list of guild users
             response = await client.get_guild_members(user_guild_payload[0])
             guild_users = {
                 user["user"]["id"]: {
@@ -181,39 +176,30 @@ async def homepage():
 
         # manager view
         if await StudySession.filter(manager=ses["USER_PAYLOAD"]["user_id"]).exists():
-            # need to reorder
-            session_manager = True
-            session_info = await StudySession.filter(manager=ses["USER_PAYLOAD"]["user_id"]).first()
-            guild_users = ses["GUILD_USERS"]
-            active_session_users = await Participant. \
-                exclude(discord_id=ses["USER_PAYLOAD"]["user_id"]). \
-                filter(session_id=session_info.id).all()
-            active_users_id = [str(active_user.discord_id) for active_user in active_session_users]
-            active_users_payload = {user: guild_users[user] for user in active_users_id if user in guild_users}
-            for user in active_session_users:
-                if str(user.discord_id) in active_users_payload:
-                    active_users_payload[str(user.discord_id)]["active"] = user.active
-            # a list of the users id that are participating in the session
-            # for user in actives_payload
             user_payload = ses["USER_PAYLOAD"]
-            # check the vars again, and maybe better name them
-            # print(f"this is session_partic {user_session}\n this is session_partic by name {users_info}\n"
-            # f" this is active_user partic {active_users_payload}")
+            guild_users = ses["GUILD_USERS"]
+            session_info = await StudySession.filter(manager=ses["USER_PAYLOAD"]["user_id"]).first()
+            active_session_users = await Participant.exclude(discord_id=ses["USER_PAYLOAD"]["user_id"])\
+                .filter(session_id=session_info.id).all()
+            invited_users_id = [str(active_user.discord_id) for active_user in active_session_users]
+            invited_users_payload = {user: guild_users[user] for user in invited_users_id if user in guild_users}
+            for user in active_session_users:
+                invited_users_payload[str(user.discord_id)]["active"] = user.active
+
             return await render_template("index.html", session_info=session_info,
-                                         session_participants=active_session_users,
-                                         active_users_partic=active_users_payload,
-                                         session_manager=session_manager,
+                                         active_users_partic=invited_users_payload,
                                          duration=session_info.start,
-                                         manager=True,
-                                         user_payload=user_payload)
+                                         user_payload=user_payload,
+                                         manager=True)
 
         # participant view
         elif await Participant.filter(discord_id=ses["USER_PAYLOAD"]["user_id"], active=True).exists():
+            user_payload = ses["USER_PAYLOAD"]
             user_session = await Participant.filter(discord_id=ses["USER_PAYLOAD"]["user_id"], active=True).first()
             session_info = await StudySession.filter(id=user_session.session_id).first()
-            # comparing the key[user_guild_id] of the stored users dict to the current active session
-            # in order to refresh the list of users stored in browser
-            if session_info.guild != ses["user_guild_id"]:
+            session_users = await Participant.exclude(discord_id=ses["USER_PAYLOAD"]["user_id"])\
+                .filter(session_id=user_session.session_id).all()
+            if session_info.guild != ses["USER_GUILD"][0]:
                 response = await client.get_guild_members(session_info.guild)
                 # refactor into a function (repeating twice)
                 guild_users = {
@@ -221,21 +207,18 @@ async def homepage():
                         "username": user["user"]["username"],
                         "avatar": user["user"]["avatar"]}
                     for user in response if user["user"]["id"] != str(ses["USER_PAYLOAD"]["user_id"])
-                                            and "bot" not in user["user"]}
+                    and "bot" not in user["user"]}
                 ses["GUILD_USERS"] = guild_users
-            user_payload = ses["USER_PAYLOAD"]
             guild_users = ses["GUILD_USERS"]
-            session_users = await Participant.exclude(discord_id=ses["USER_PAYLOAD"]["user_id"]).filter(
-                session_id=user_session.session_id).all()
             active_users_id = [str(active_user.discord_id) for active_user in session_users]
             active_users_payload = {user: guild_users[user] for user in active_users_id if user in guild_users}
+
             return await render_template("index.html",
-                                         session_partic=user_session,
-                                         duration=user_session.joined.isoformat(),
+                                         session_info=session_info,
                                          active_users_partic=active_users_payload,
-                                         participant=True,
+                                         duration=user_session.joined.isoformat(),
                                          user_payload=user_payload,
-                                         session_info=session_info)
+                                         participant=True)
 
         return await render_template("index.html",
                                      guild_users=ses["GUILD_USERS"],
@@ -257,8 +240,7 @@ async def history():
     user_history = {query.index(study_session): {"name": study_session.session_name,
                                                  "duration": str(study_session.duration).split(".")[0],
                                                  "desc": study_session.desc} for study_session in query}
-    return await render_template("history.html", user_payload=ses["USER_PAYLOAD"],
-                                 user_history=user_history)
+    return await render_template("history.html", user_payload=ses["USER_PAYLOAD"], user_history=user_history)
 
 
 @QUART_APP.route("/guild/", methods=["POST", "GET"])

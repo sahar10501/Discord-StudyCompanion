@@ -74,7 +74,7 @@
 
     <div class='row mt-5 pt-5'>
       <div class='col-lg-5'>
-        {% if session_manager is not defined and not participant %}
+        {% if not manager and not participant %}
         <button type='button' style="background-color: #4649ef; color: white;" class='d-grid btn btn-lg col-6 mx-auto' 
         data-bs-toggle="modal" data-bs-target="#invite_modal" id="open_inv_modal">Invite</button>
         {% elif manager == true %}
@@ -110,8 +110,8 @@
       </div>
       <div class='col-lg-5'>
         {% if participant %}
-        <button style="background-color: #322f45;" type='button' id='session_control' value="leave" class='d-grid btn btn-lg col-6 mx-auto'>Leave</button>
-        {% elif session_manager is not defined %}
+        <button style="background-color: #322f45; color: white;" type='button' id='session_control' value="leave" class='d-grid btn btn-lg col-6 mx-auto'>Leave</button>
+        {% elif not manager %}
         <button style="background-color: #2ddba4; color: white;" type='button' id="open_start_modal" value="start" class='d-grid btn btn-lg col-6 mx-auto disabled' 
         data-bs-toggle="modal" data-bs-target="#start_modal">Start</button>
         {% else %}
@@ -120,7 +120,7 @@
       </div>
     </div>
     </div>
-  </div>
+  </div> 7|No Topic Study Room|No Description|336967207172964362|Porcupine|869199710332813372|925711793517625384|2021-12-29 11:28:09.927599+00:00
   <!-- Modal - Prompts the users with the abillity to set a study session -->
   <div class="modal fade" id="invite_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
     <div class="modal-dialog">
