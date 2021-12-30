@@ -18,6 +18,33 @@ function show_users() {
   });
 }
 
+let notif_buttons = document.querySelectorAll('.notif_button.btn.btn-secondary')
+notif_buttons.forEach((element, index) => {
+    console.log('click');
+    let action = element.getAttribute('data-session')
+    element.addEventListener('click', function(){
+      console.log('click');
+      let payload = {'partic_id': element.value}
+      payload = JSON.stringify(payload)
+      fetch("/", {
+        method: 'POST',
+        body: payload,
+        headers: new Headers({
+          'Content-Type': 'application/json',
+          'X-Custom-Header': action+'_session'
+        })
+
+      })
+      .then(function(response){
+        if (action = 'join'){
+          if(response.status == 200){
+            window.location.href = '/'
+          }
+        }
+      })
+    })
+})
+
 let buttons = document.querySelectorAll('.user_buttons.btn')
 // Listens to button click, assign and remove users from invite list
 buttons.forEach(element =>  {

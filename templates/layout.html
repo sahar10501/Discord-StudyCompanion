@@ -35,8 +35,27 @@
                   <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end" aria-labelledby="navbarDropdown">
                     <li>
                     </li>
-                    <li><a class="dropdown-item" href="#">Notifications</a></li>
-                    <li><a class="dropdown-item" href="#">Stats</a></li>
+                    <li><a class="dropdown-item" href="#">Notifications <span style="background-color: #c44d84; margin-left: 8%;" class="badge">{{ inactive_session.count() }}</span></a>
+                        <ul  style="padding-left: 0.5rem; padding-right: 0.5rem;"  class="dropdown-menu dropdown-submenu dropdown-submenu-left">
+                            {% for session in inactive_session %}
+                            <li> 
+                                User: {{ session["session"].manager_username | title }}
+                                <hr style="margin: 0;">
+                                {{ session["session"].name | title }}
+                                <br>
+                                <div style="margin-left: 2rem;" class="btn-group me-2" role="group" aria-label="Second group">
+                                    <button type="button" value="{{ session.id }}" id="remove_session" data-session="remove" class="notif_button btn btn-secondary">☒</button>
+                                    <button type="button" value="{{ session.id }}" id="join_session" data-session="join" class="notif_button btn btn-secondary">☑</button>
+                                  </div>
+                                  <hr style="color: black; margin-top: 0.6rem; margin-bottom: 0.3rem;">
+
+                            </li>
+                            {% endfor %}
+                          </ul>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="#">Stats</a>
+                    </li>
                     <li><a class="dropdown-item" href="#">Preference</a></li>
                     <li><hr class="dropdown-divider"></li>
                     <li>
