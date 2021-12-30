@@ -2,11 +2,11 @@
 {% block head %}
 {% endblock %}
 {% block main %}
-<div class='container-fluid mt-3 mb-4'>
+<div class='container-fluid'>
 <div class='row'>
 
   {% if guild_users %} 
-  <div id="guild_users_col" class='col-3 fixed-right'>
+  <div id="guild_users_col" class='col-3 fixed-right' style="background: #1A181B; padding-top: 1rem;">
     <div class='vertical-menu'>
         <ul style='padding: 0; margin-left: 0.2rem;'>
         {% for key, item in guild_users.items() %}
@@ -120,7 +120,7 @@
       </div>
     </div>
     </div>
-  </div> 7|No Topic Study Room|No Description|336967207172964362|Porcupine|869199710332813372|925711793517625384|2021-12-29 11:28:09.927599+00:00
+  </div>
   <!-- Modal - Prompts the users with the abillity to set a study session -->
   <div class="modal fade" id="invite_modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
     <div class="modal-dialog">
@@ -187,5 +187,4 @@
 {% if manager == true or participant == true %}
 <script type="text/javascript" src="/static/session-view.js"></script>
 {% endif %}
-
 {% endblock %}

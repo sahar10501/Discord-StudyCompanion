@@ -81,7 +81,7 @@ invite_button.addEventListener('click', function() {
     body: users_id,
     headers: new Headers({
       'Content-Type': 'application/json',
-      'X-Custom-Header': 'invite_list'
+      'X-Custom-Header': 'stage_session'
     })
   })
   .then(function(response){

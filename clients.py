@@ -14,6 +14,7 @@ class AsyncHttpRequest:
         self.headers = {"Authorization": f'Bot {token}'}
         self.base_url = "https://discord.com/api"
         self.book_emoji = "📗"
+        self.bot_id = 848992662250192916
 
     async def create_dm_channel(self, user_id):
         """ Creating an active dm channel between the bot and the invited user """
@@ -28,14 +29,20 @@ class AsyncHttpRequest:
         results = await asyncio.gather(*[self.create_dm_channel(user) for user in users_id], return_exceptions=True)
         return results
 
-    async def get_guild_members(self, guild_id):
+    async def get_guild_members(self, guild_id, user_id: str):
         """ Getting all the server members that the users chose """
         if self.session is None:
             self.session = ClientSession()
         async with self.session.get(url=f"{self.base_url}/guilds/{guild_id}/members", headers=self.headers,
                                     params={"limit": 1000}) as response:
             response = await response.json()
-            return response
+            guild_users = {
+                user["user"]["id"]: {
+                    "username": user["user"]["username"],
+                    "avatar": user["user"]["avatar"]}
+                for user in response if user["user"]["id"] != user_id
+                and "bot" not in user["user"]}
+            return guild_users
 
     async def get_bot_guilds(self):
         if self.session is None:
