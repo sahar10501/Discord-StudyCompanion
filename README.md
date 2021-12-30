@@ -43,7 +43,8 @@ voluptas sit aspernatur aut odit aut fugit, sed quia
 <!-- ROADMAP -->
 ## Roadmap
 
-- [ ] Implement a notification system
+- [x] Implement a notification system
+- [ ] Add statistics
 - [ ] Implement a request queue for the dynamic rate-limiting of Discord API
 - [ ] Redo the UI
     - [ ] Slowly replace bootstrap with vanilla css in order understand CSS deeper
