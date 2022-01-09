@@ -44,6 +44,7 @@ voluptas sit aspernatur aut odit aut fugit, sed quia
 ## Roadmap
 
 - [x] Implement a notification system
+- [ ] Move to an mvc structure 
 - [ ] Add statistics
 - [ ] Implement a request queue for the dynamic rate-limiting of Discord API
 - [ ] Redo the UI
